@@ -1,3 +1,7 @@
+// arquivo: igreja_melhorada.cpp
+// g++ igreja_melhorada.cpp -o igreja.exe -lfreeglut -lopengl32 -lglu32
+// Igreja moderna com fachada em V, entrada realista e objetos detalhados
+
 #include <GL/freeglut.h>
 #include <cmath>
 #include <cstdio>
@@ -9,12 +13,8 @@ static const char* TITLE = "Igreja Moderna 3D — V=Voar, F=Lanterna, R=Reset, M
 int   WIN_W = 1280, WIN_H = 720;
 
 const float CH_WIDTH  = 12.0f;   // x interno -6..+6
-const float CH_DEPTH  = 32.0f;   // z interno BACK_Z..FRONT_Z
+const float CH_DEPTH  = 40.0f;   // z interno -25..+15
 const float CH_HEIGHT =  6.0f;
-// Centro e helpers para frente/fundo (antes: centro=-5, fundo=-25, frente=15)
-const float CH_CENTER_Z = -5.0f;
-static inline float FRONT_Z(){ return CH_CENTER_Z + CH_DEPTH*0.5f; }
-static inline float BACK_Z (){ return CH_CENTER_Z - CH_DEPTH*0.5f; }
 const float DOOR_HALF =  2.0f;
 const float WALL_T    =  0.2f;
 const float FLOOR_Y   =  0.0f;
@@ -98,7 +98,7 @@ void drawPortalAFrame(float zCenter, bool addCross, bool groundLevel = false){
 //================== FACHADA EM A-FRAME (V INVERTIDO) ==================
 void drawAFrameFacade(){
     // Base de pedra com RECORTE central
-    const float baseW = 14.0f, baseH = 2.2f, baseZ = FRONT_Z()+1.8f;
+    const float baseW = 14.0f, baseH = 2.2f, baseZ = 16.8f;
     const float gapW  = 4.8f; // vão livre
     const float sideW = (baseW - gapW) * 0.5f;
     const float stoneR=0.62f, stoneG=0.58f, stoneB=0.54f;
@@ -108,8 +108,8 @@ void drawAFrameFacade(){
     drawBox(0.0f, 0.12f, baseZ, gapW, 0.24f, 0.28f, stoneR*0.9f, stoneG*0.9f, stoneB*0.9f);
 
     // >>> Dois arcos um atrás do outro, com espaço e sem bloquear a porta:
-    const float zFront = FRONT_Z()+1.8f; // arco da frente
-    const float zBack  = FRONT_Z()+1.0f; // arco de trás, um pouco mais próximo da parede
+    const float zFront = 16.8f; // arco da frente
+    const float zBack  = 16.0f; // arco de trás, um pouco mais próximo da parede
 
     drawPortalAFrame(zFront, true,  false); // frente: com cruz/placa, não encosta
     drawPortalAFrame(zBack,  false, true ); // trás: sem cruz/placa, encosta no chão
@@ -123,7 +123,7 @@ void drawPhotoStyleEntrance(){
     const float doorW = DOOR_HALF*2.0f;   // 4.0 m
     const float doorH = 3.0f;
     const float frameW= 0.35f;            // largura das ombreiras / verga
-    const float zFace = FRONT_Z()-0.10f;  // um pouco para dentro da parede (parede está em z=FRONT_Z())
+    const float zFace = 14.90f;           // um pouco para dentro da parede (z=15)
     const float fr=0.72f, fg=0.74f, fb=0.77f;
 
     // ombreiras
@@ -136,11 +136,11 @@ void drawPhotoStyleEntrance(){
     // // drawBox(0.0f, 1.5f, 15.0f, 6.0f, 3.0f, 0.2f, ...);  // ISSO TAMPAVA A PORTA
 
     // iluminação do teto da entrada
-    drawBox(0.0f, 3.1f, FRONT_Z(), 0.8f, 0.25f, 0.25f, 0.90f,0.90f,0.92f);
+    drawBox(0.0f, 3.1f, 15.0f, 0.8f, 0.25f, 0.25f, 0.90f,0.90f,0.92f);
 
     // tapete/capacho (opcional)
-    drawBox(0.0f, FLOOR_Y+0.01f, FRONT_Z()-0.4f, 3.8f, 0.02f, 1.2f, 0.75f,0.10f,0.10f);
-    drawBox(0.0f, FLOOR_Y+0.02f, FRONT_Z()-0.1f, 1.9f, 0.02f, 0.7f, 0.55f,0.40f,0.22f);
+    drawBox(0.0f, FLOOR_Y+0.01f, 14.6f, 3.8f, 0.02f, 1.2f, 0.75f,0.10f,0.10f);
+    drawBox(0.0f, FLOOR_Y+0.02f, 14.9f, 1.9f, 0.02f, 0.7f, 0.55f,0.40f,0.22f);
 }
 //================== JARDIM EXTERNO ==================
 void drawGarden(){
@@ -226,51 +226,50 @@ inline void placeStainedOnSide(float xSide,float y,float z){
 
 //================== OBJETOS REALISTAS ==================
 void drawRealisticAltar(){
-    float zAltar = BACK_Z()+2.5f;
     // Degrau de escada preto (base elevada) - mais largo
-    drawBox(0.0f, FLOOR_Y+0.15f, zAltar, 5.0f, 0.3f, 2.0f, 0.1f, 0.1f, 0.1f);
+    drawBox(0.0f, FLOOR_Y+0.15f, -22.5f, 5.0f, 0.3f, 2.0f, 0.1f, 0.1f, 0.1f);
     
     // Segundo degrau menor - mais largo
-    drawBox(0.0f, FLOOR_Y+0.35f, zAltar+0.2f, 4.5f, 0.2f, 1.6f, 0.15f, 0.15f, 0.15f);
+    drawBox(0.0f, FLOOR_Y+0.35f, -22.3f, 4.5f, 0.2f, 1.6f, 0.15f, 0.15f, 0.15f);
     
     // Base do altar (mármore branco com veios cinzentos) - mais largo
     float marbleR=0.95f, marbleG=0.95f, marbleB=0.97f;
-    drawBox(0.0f, FLOOR_Y+0.75f, zAltar, 3.8f, 1.1f, 1.4f, marbleR, marbleG, marbleB);
+    drawBox(0.0f, FLOOR_Y+0.75f, -22.5f, 3.8f, 1.1f, 1.4f, marbleR, marbleG, marbleB);
     
     // Painel frontal (mármore preto com Agnus Dei dourado) - mais largo
-    drawBox(0.0f, FLOOR_Y+0.75f, zAltar+0.6f, 3.0f, 1.0f, 0.05f, 0.12f, 0.12f, 0.15f);
+    drawBox(0.0f, FLOOR_Y+0.75f, -21.9f, 3.0f, 1.0f, 0.05f, 0.12f, 0.12f, 0.15f);
     
     // Detalhe dourado do Agnus Dei (Cordeiro de Deus) - mais largo
-    drawBox(0.0f, FLOOR_Y+1.0f, zAltar+0.65f, 1.2f, 0.4f, 0.02f, 0.9f, 0.7f, 0.2f);
+    drawBox(0.0f, FLOOR_Y+1.0f, -21.85f, 1.2f, 0.4f, 0.02f, 0.9f, 0.7f, 0.2f);
     
     // Toalha de altar (branca com renda nas bordas) - mais larga
-    drawBox(0.0f, FLOOR_Y+1.3f, zAltar, 4.0f, 0.05f, 1.5f, 1.0f, 1.0f, 1.0f);
+    drawBox(0.0f, FLOOR_Y+1.3f, -22.5f, 4.0f, 0.05f, 1.5f, 1.0f, 1.0f, 1.0f);
     
     // Bíblia aberta (capa avermelhada/marrom) - mais larga
-    drawBox(-0.8f, FLOOR_Y+1.35f, zAltar+0.2f, 0.5f, 0.03f, 0.3f, 0.7f, 0.4f, 0.3f);
-    drawBox(-0.8f, FLOOR_Y+1.38f, zAltar+0.2f, 0.48f, 0.01f, 0.28f, 0.95f, 0.95f, 0.98f);
+    drawBox(-0.8f, FLOOR_Y+1.35f, -22.3f, 0.5f, 0.03f, 0.3f, 0.7f, 0.4f, 0.3f);
+    drawBox(-0.8f, FLOOR_Y+1.38f, -22.3f, 0.48f, 0.01f, 0.28f, 0.95f, 0.95f, 0.98f);
 }
 
 void drawRealisticCrucifix(){
     // Parede de mármore cinza claro com veios escuros
     float marbleR=0.88f, marbleG=0.88f, marbleB=0.90f;
-    drawBox(0.0f, 3.0f, BACK_Z()+0.1f, 4.0f, 6.0f, 0.1f, marbleR, marbleG, marbleB);
+    drawBox(0.0f, 3.0f, -24.9f, 4.0f, 6.0f, 0.1f, marbleR, marbleG, marbleB);
     
     // Cruz (madeira escura marrom)
     float woodR=0.45f, woodG=0.30f, woodB=0.20f;
-    drawBox(0.0f, 3.8f, BACK_Z()+0.2f, 0.2f, 3.5f, 0.08f, woodR, woodG, woodB);
-    drawBox(0.0f, 4.5f, BACK_Z()+0.2f, 1.8f, 0.2f, 0.08f, woodR, woodG, woodB);
+    drawBox(0.0f, 3.8f, -24.8f, 0.2f, 3.5f, 0.08f, woodR, woodG, woodB);
+    drawBox(0.0f, 4.5f, -24.8f, 1.8f, 0.2f, 0.08f, woodR, woodG, woodB);
     
     // Cristo (corpo realista com tons de pele)
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
-    drawBox(0.0f, 4.2f, BACK_Z()+0.25f, 0.15f, 0.8f, 0.05f, skinR, skinG, skinB);
-    drawBox(0.0f, 4.6f, BACK_Z()+0.25f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.2f, -24.75f, 0.15f, 0.8f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.6f, -24.75f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
     
     // Braços
-    drawBox(-0.3f, 4.4f, BACK_Z()+0.25f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
+    drawBox(-0.3f, 4.4f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
     
     // Pano branco cobrindo a cintura
-    drawBox(0.0f, 3.9f, BACK_Z()+0.3f, 0.25f, 0.3f, 0.03f, 1.0f, 1.0f, 1.0f);
+    drawBox(0.0f, 3.9f, -24.7f, 0.25f, 0.3f, 0.03f, 1.0f, 1.0f, 1.0f);
 }
 
 void drawRealisticStatues(){
@@ -283,13 +282,13 @@ void drawRealisticStatues(){
     //drawBox(-4.5f, FLOOR_Y+1.2f, -20.0f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
     
     // Corpo (vestido azul)
-    drawBox(-4.5f, FLOOR_Y+1.0f, BACK_Z()+5.0f, 0.3f, 1.2f, 0.2f, blueR, blueG, blueB);
+    drawBox(-4.5f, FLOOR_Y+1.0f, -20.0f, 0.3f, 1.2f, 0.2f, blueR, blueG, blueB);
     
     // Cabeça
-    drawSphere(-4.5f, FLOOR_Y+1.8f, BACK_Z()+5.0f, 0.12f, 12, 12, skinR, skinG, skinB);
+    drawSphere(-4.5f, FLOOR_Y+1.8f, -20.0f, 0.12f, 12, 12, skinR, skinG, skinB);
     
     // Manto branco
-    drawBox(-4.5f, FLOOR_Y+1.3f, BACK_Z()+5.0f, 0.4f, 0.8f, 0.15f, whiteR, whiteG, whiteB);
+    drawBox(-4.5f, FLOOR_Y+1.3f, -20.0f, 0.4f, 0.8f, 0.15f, whiteR, whiteG, whiteB);
     
     // Estátua de São José (direita) - em prateleira branca
     float brownR=0.6f, brownG=0.4f, brownB=0.2f;
@@ -298,13 +297,13 @@ void drawRealisticStatues(){
     //drawBox(4.5f, FLOOR_Y+1.2f, -20.0f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
     
     // Corpo (túnica marrom)
-    drawBox(4.5f, FLOOR_Y+1.0f, BACK_Z()+5.0f, 0.3f, 1.2f, 0.2f, brownR, brownG, brownB);
+    drawBox(4.5f, FLOOR_Y+1.0f, -20.0f, 0.3f, 1.2f, 0.2f, brownR, brownG, brownB);
     
     // Cabeça
-    drawSphere(4.5f, FLOOR_Y+1.8f, BACK_Z()+5.0f, 0.12f, 12, 12, skinR, skinG, skinB);
+    drawSphere(4.5f, FLOOR_Y+1.8f, -20.0f, 0.12f, 12, 12, skinR, skinG, skinB);
     
     // Cajado
-    drawBox(4.7f, FLOOR_Y+1.2f, BACK_Z()+5.0f, 0.03f, 1.0f, 0.03f, 0.4f, 0.3f, 0.2f);
+    drawBox(4.7f, FLOOR_Y+1.2f, -20.0f, 0.03f, 1.0f, 0.03f, 0.4f, 0.3f, 0.2f);
 }
 
 
@@ -312,19 +311,18 @@ void drawProcessionalCross(){
     float goldR=0.9f, goldG=0.7f, goldB=0.2f;
     
     // Base dourada
-    float zCross = BACK_Z()+4.0f;
-    drawBox(2.5f, FLOOR_Y+0.1f, zCross, 0.3f, 0.2f, 0.3f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+0.1f, -21.0f, 0.3f, 0.2f, 0.3f, goldR, goldG, goldB);
     
     // Haste principal dourada
-    drawBox(2.5f, FLOOR_Y+2.0f, zCross, 0.05f, 4.0f, 0.05f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+2.0f, -21.0f, 0.05f, 4.0f, 0.05f, goldR, goldG, goldB);
     
     // Cruz no topo dourada
-    drawBox(2.5f, FLOOR_Y+4.2f, zCross, 0.05f, 0.4f, 0.05f, goldR, goldG, goldB);
-    drawBox(2.5f, FLOOR_Y+4.0f, zCross, 0.3f, 0.05f, 0.05f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+4.2f, -21.0f, 0.05f, 0.4f, 0.05f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+4.0f, -21.0f, 0.3f, 0.05f, 0.05f, goldR, goldG, goldB);
     
     // Crucifixo pequeno dourado
-    drawBox(2.5f, FLOOR_Y+4.2f, zCross+0.05f, 0.02f, 0.15f, 0.02f, goldR, goldG, goldB);
-    drawBox(2.5f, FLOOR_Y+4.15f, zCross+0.05f, 0.1f, 0.02f, 0.02f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+4.2f, -20.95f, 0.02f, 0.15f, 0.02f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+4.15f, -20.95f, 0.1f, 0.02f, 0.02f, goldR, goldG, goldB);
 }
 
 // --- Símbolo do ambão (placa de mármore + inlay preto) ---
@@ -365,7 +363,7 @@ void drawAmbao(){
     
     // Posição do ambão: mais para o lado e virado para as cadeiras
     float ambaoX = -3.0f;  // Movido mais para o lado
-    float ambaoZ = BACK_Z()+5.0f; // Movido em função do fundo
+    float ambaoZ = -18.0f; // Movido mais para frente (em direção às cadeiras)
     
     // Base do ambão (degrau) - menor
     drawBox(ambaoX, FLOOR_Y+0.15f, ambaoZ, 0.8f, 0.3f, 0.6f, woodR, woodG, woodB);
@@ -400,7 +398,7 @@ void drawDoor(){
         glTranslatef(-1.0f, 0.0f, 0.0f);
         glRotatef(90, 0, 1, 0);
         glTranslatef(1.0f, 0.0f, 0.0f);
-        drawBox(-1.0f, 1.5f, FRONT_Z()+0.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
+        drawBox(-1.0f, 1.5f, 15.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
         glPopMatrix();
         
         // Porta direita aberta
@@ -408,36 +406,36 @@ void drawDoor(){
         glTranslatef(1.0f, 0.0f, 0.0f);
         glRotatef(-90, 0, 1, 0);
         glTranslatef(-1.0f, 0.0f, 0.0f);
-        drawBox(1.0f, 1.5f, FRONT_Z()+0.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
+        drawBox(1.0f, 1.5f, 15.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
         glPopMatrix();
         
         // Maçanetas das portas abertas
-        drawBox(-1.8f, 1.5f, FRONT_Z()+0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-        drawBox(1.8f, 1.5f, FRONT_Z()+0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
+        drawBox(-1.8f, 1.5f, 15.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
+        drawBox(1.8f, 1.5f, 15.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
     } else {
         // Portas fechadas
         // Porta esquerda
-        drawBox(-1.0f, 1.5f, FRONT_Z()+0.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
+        drawBox(-1.0f, 1.5f, 15.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
         
         // Porta direita
-        drawBox(1.0f, 1.5f, FRONT_Z()+0.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
+        drawBox(1.0f, 1.5f, 15.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
         
         // Maçanetas das portas fechadas
-        drawBox(-0.2f, 1.5f, FRONT_Z()+0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-        drawBox(0.2f, 1.5f, FRONT_Z()+0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
+        drawBox(-0.2f, 1.5f, 15.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
+        drawBox(0.2f, 1.5f, 15.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
         
         // Detalhes das portas (molduras)
         // Moldura da porta esquerda
-        drawBox(-1.0f, 1.5f, FRONT_Z()+0.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(-1.0f, 1.5f, FRONT_Z()+0.12f, 0.1f, 2.8f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(-1.0f, 2.5f, FRONT_Z()+0.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(-1.0f, 0.5f, FRONT_Z()+0.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
+        drawBox(-1.0f, 1.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
+        drawBox(-1.0f, 1.5f, 15.12f, 0.1f, 2.8f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
+        drawBox(-1.0f, 2.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
+        drawBox(-1.0f, 0.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
         
         // Moldura da porta direita
-        drawBox(1.0f, 1.5f, FRONT_Z()+0.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(1.0f, 1.5f, FRONT_Z()+0.12f, 0.1f, 2.8f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(1.0f, 2.5f, FRONT_Z()+0.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(1.0f, 0.5f, FRONT_Z()+0.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
+        drawBox(1.0f, 1.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
+        drawBox(1.0f, 1.5f, 15.12f, 0.1f, 2.8f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
+        drawBox(1.0f, 2.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
+        drawBox(1.0f, 0.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
     }
 }
 
@@ -470,9 +468,7 @@ void drawPlasticChairWhite(){
 }
 void drawChairsLayout(){
     // Cadeiras orientadas para o altar (cruz) - fileiras mais organizadas
-    float zFirst = std::min(8.0f, FRONT_Z() - 7.0f);
-    float zLast  = std::max(-16.0f, BACK_Z() + 9.0f);
-    for (float z=zFirst; z>=zLast; z-=2.5f){
+    for (float z=8.0f; z>=-16.0f; z-=2.5f){
         for(int c=0;c<4;++c){
             float off=1.0f*c;
             // Lado direito - cadeiras viradas para o altar
@@ -537,7 +533,7 @@ void drawFrontPath(){
     // medidas principais (ajuste se quiser)
     const float pathW = 4.8f;   // LARGURA do caminho (≈ largura do vão)
     const float pathL = 22.0f;  // COMPRIMENTO do caminho para "fora"
-    const float z0    = FRONT_Z() + 1.2f;  // começa logo depois da porta/mureta (parede está em z=FRONT_Z())
+    const float z0    = 16.2f;  // começa logo depois da porta/mureta (parede está em z=15)
 
     // base cinza (um tico acima do gramado para não dar z-fighting)
     drawBox(0.0f, FLOOR_Y-0.005f, z0 + pathL*0.5f,
@@ -566,20 +562,20 @@ void drawChurchOpaque(){
     float floorR=0.78f, floorG=0.77f, floorB=0.75f; // piso claro sem branco puro
 
     // Piso, teto
-    drawBox(0.0f, FLOOR_Y-0.05f, CH_CENTER_Z, CH_WIDTH, 0.1f, CH_DEPTH, floorR,floorG,floorB);
-    drawBox(0.0f, CH_HEIGHT, CH_CENTER_Z,   CH_WIDTH, 0.1f, CH_DEPTH,  ceilR,ceilG,ceilB);
+    drawBox(0.0f, FLOOR_Y-0.05f, -5.0f, CH_WIDTH, 0.1f, CH_DEPTH, floorR,floorG,floorB);
+    drawBox(0.0f, CH_HEIGHT, -5.0f,   CH_WIDTH, 0.1f, CH_DEPTH,  ceilR,ceilG,ceilB);
 
     // Paredes
     drawBox(-CH_WIDTH*0.5f, CH_HEIGHT*0.5f, -5.0f, WALL_T, CH_HEIGHT, CH_DEPTH, wallR,wallG,wallB);
     drawBox( CH_WIDTH*0.5f, CH_HEIGHT*0.5f, -5.0f, WALL_T, CH_HEIGHT, CH_DEPTH, wallR,wallG,wallB);
-    drawBox(0.0f, CH_HEIGHT*0.5f, BACK_Z(),   CH_WIDTH, CH_HEIGHT, WALL_T, wallR,wallG,wallB);
+    drawBox(0.0f, CH_HEIGHT*0.5f, -25.0f,   CH_WIDTH, CH_HEIGHT, WALL_T, wallR,wallG,wallB);
 
     // Frente (porta) - CORRIGIDO: entrada no nível do chão
-    drawBox(-(CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, FRONT_Z(),
+    drawBox(-(CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 15.0f,
             (CH_WIDTH*0.5f-DOOR_HALF), CH_HEIGHT, WALL_T, wallR,wallG,wallB);
-    drawBox( (CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, FRONT_Z(),
+    drawBox( (CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 15.0f,
             (CH_WIDTH*0.5f-DOOR_HALF), CH_HEIGHT, WALL_T, wallR,wallG,wallB);
-    drawBox(0.0f, (3.0f+CH_HEIGHT)*0.5f, FRONT_Z(), DOOR_HALF*2.0f, (CH_HEIGHT-3.0f), WALL_T, wallR,wallG,wallB);
+    drawBox(0.0f, (3.0f+CH_HEIGHT)*0.5f, 15.0f, DOOR_HALF*2.0f, (CH_HEIGHT-3.0f), WALL_T, wallR,wallG,wallB);
 
     // Objetos realistas
     drawChairsLayout();
@@ -592,8 +588,8 @@ void drawChurchOpaque(){
     drawProcessionalCross();
     
     // Ventiladores nas paredes laterais (nos pontos vermelhos)
-    drawCeilingFan(-5.8f, 4.5f, CH_CENTER_Z+5.0f, true);   // Ventilador esquerdo
-    drawCeilingFan( 5.8f, 4.5f, CH_CENTER_Z+5.0f, false);  // Ventilador direito
+    drawCeilingFan(-5.8f, 4.5f, 0.0f, true);   // Ventilador esquerdo (aponta para direita/meio)
+    drawCeilingFan(5.8f, 4.5f, 0.0f, false);   // Ventilador direito (aponta para esquerda/meio)
 
     // Fachada e entrada estilo foto
     drawAFrameFacade();
@@ -765,10 +761,8 @@ void applyCamera(){
 bool checkChairCollision(float x, float z){
     // Usa o mesmo arranjo de cadeiras de drawChairsLayout(),
     // mas só checa fileiras próximas para performance
-    float zFirst = std::min(8.0f, FRONT_Z() - 7.0f);
-    float zLast  = std::max(-16.0f, BACK_Z() + 9.0f);
-    const float startZ = zFirst;
-    const float endZ   = zLast;
+    const float startZ = 8.0f;
+    const float endZ   = -16.0f;
     const float pitchZ = 2.5f;
     const float baseX  = 2.5f;   // posição base em cada lado
     const float pitchX = 1.0f;   // espaçamento entre colunas
@@ -804,92 +798,79 @@ bool checkChairCollision(float x, float z){
 }
 
 // Função para verificar colisão com objetos do altar
-bool checkAltarCollision(float x, float z){
-    // Altar principal (anteriormente -23.5f a -21.5f, agora relativo ao BACK_Z)
-    float zAltar = BACK_Z() + 2.5f;
-    if (x >= -2.5f && x <= 2.5f && z >= zAltar - 1.0f && z <= zAltar + 1.0f) return true;
-    
-    // Ambão (anteriormente -20.30f a -19.70f, agora relativo ao BACK_Z)
-    float ambaoZ = BACK_Z() + 5.0f;
-    if (x >= -3.40f && x <= -2.60f && z >= ambaoZ - 0.3f && z <= ambaoZ + 0.3f) return true;
-    
-    // Estátuas laterais (anteriormente -20.2f a -19.8f, agora relativo ao BACK_Z)
-    float statueZ = BACK_Z() + 5.0f;
-    if (x >= -4.9f && x <= -4.1f && z >= statueZ - 0.2f && z <= statueZ + 0.2f) return true; // esquerda
-    if (x >= 4.1f && x <= 4.9f && z >= statueZ - 0.2f && z <= statueZ + 0.2f) return true;  // direita
-    
-    // Cruz processional (anteriormente -21.15f a -20.85f, agora relativo ao BACK_Z)
-    float crossZ = BACK_Z() + 4.0f;
-    if (x >= 2.35f && x <= 2.65f && z >= crossZ - 0.15f && z <= crossZ + 0.15f) return true;
-    
+bool checkAltarCollision(float x, float z) {
+    // Altar principal
+    if (x >= -2.5f && x <= 2.5f && z >= -23.5f && z <= -21.5f) {
+        return true;
+    }
+
+    // Ambão
+    if (x >= -3.40f && x <= -2.60f && z >= -18.3f && z <= -17.7f) {
+        return true;
+    }
+
+    // Estátuas laterais
+    if (x >= -4.9f && x <= -4.1f && z >= -20.2f && z <= -19.8f) { // esquerda
+        return true;
+    }
+    if (x >= 4.1f && x <= 4.9f && z >= -20.2f && z <= -19.8f) { // direita
+        return true;
+    }
+
+    // Cruz processional
+    if (x >= 2.35f && x <= 2.65f && z >= -21.15f && z <= -20.85f) {
+        return true;
+    }
+
     return false;
 }
 
-void collideAndMove(float& nx, float& ny, float& nz, float ox, float oy, float oz) {
+void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
     if (flyingMode) {
-        return; // Não há colisão em modo voo
+        // No modo voo, não há colisão - movimento livre
+        return;
     }
-
-    const float halfW = CH_WIDTH * 0.5f;
-    const float backZ = BACK_Z();
-    const float frontZ = FRONT_Z();
-    const float doorHalf = DOOR_HALF;
-
-    float tx = nx, ty = ny, tz = nz;
-
-    // Manter altura do chão
-    if (ty < EYE_H) {
-        ty = EYE_H;
-    }
-
-    // Colisão com paredes laterais da igreja
-    if (oz > backZ - RADIUS && oz < frontZ + RADIUS) {
-        if (tx < -halfW + RADIUS) {
-            tx = -halfW + RADIUS;
-        }
-        if (tx > halfW - RADIUS) {
-            tx = halfW - RADIUS;
-        }
-    }
-
-    // Colisão com paredes frontal e traseira
-    if (tx > -halfW - RADIUS && tx < halfW + RADIUS) {
-        if (tx > -halfW - RADIUS && tx < halfW + RADIUS){
-            // fundo
-            if (oz >= backZ + RADIUS && tz < backZ + RADIUS) tz = backZ + RADIUS;
     
-            // frente (parede/porta)
-            if (!doorOpen){
-                // bloqueia sair de dentro para fora
-                if (oz <= frontZ - RADIUS && tz > frontZ - RADIUS) tz = frontZ - RADIUS;
-                // bloqueia entrar de fora para dentro
-                if (oz >= frontZ + RADIUS && tz < frontZ + RADIUS) tz = frontZ + RADIUS;
-            }
+    // Colisão com paredes
+    float halfW=CH_WIDTH*0.5f, backZ=-25, frontZ=15;
+    float tx=nx, ty=ny, tz=nz;
+    
+    // Manter altura do chão
+    if (ty < EYE_H) ty = EYE_H;
+    
+    // Colisão com paredes laterais
+    if (oz>backZ-RADIUS && oz<frontZ+RADIUS){
+        if (tx<-halfW+RADIUS) tx=-halfW+RADIUS;
+        if (tx> halfW-RADIUS) tx= halfW-RADIUS;
+    }
+    
+    // Colisão com paredes frontal e traseira
+    if (tx > -halfW-RADIUS && tx < halfW+RADIUS){
+        if (tz<backZ+RADIUS) tz=backZ+RADIUS;
+        if (tz>frontZ-RADIUS){ 
+            // Se a porta estiver fechada, não pode passar
+            if (!doorOpen && std::fabs(tx)>DOOR_HALF) tz=frontZ-RADIUS; 
         }
     }
-
-    // --- Lógica de colisão com objetos (cadeiras, altar) e "slide" ---
-    // A colisão com objetos é verificada apenas após a colisão com as paredes principais
+    
+    // Verificar colisão com cadeiras/objetos e tentar "deslizar" nos eixos
     if (checkChairCollision(tx, tz) || checkAltarCollision(tx, tz)) {
-        // Tenta mover apenas em X (mantém Z na posição original)
+        // Tenta mover só em X
         float tryX = tx, tryZ = oz;
         if (!checkChairCollision(tryX, tryZ) && !checkAltarCollision(tryX, tryZ)) {
             tz = tryZ;
         } else {
-            // Se não foi possível em X, tenta mover apenas em Z (mantém X na posição original)
-            tryX = ox;
-            tryZ = tz;
+            // Tenta mover só em Z
+            tryX = ox; tryZ = tz;
             if (!checkChairCollision(tryX, tryZ) && !checkAltarCollision(tryX, tryZ)) {
                 tx = tryX;
             } else {
-                // Se nenhum dos eixos funciona, a posição final é a posição original (fica parado)
-                tx = ox;
-                tz = oz;
+                // Nenhum eixo possível: fica parado
+                tx = ox; tz = oz;
             }
         }
     }
-
-    // Atualiza os valores passados por referência
+    
     nx = tx;
     ny = ty;
     nz = tz;
@@ -971,8 +952,8 @@ void keyDownCb(unsigned char k,int,int){
     if(kk==27) std::exit(0);
     else if(kk=='f') flashlightOn=!flashlightOn;
     else if(kk=='v'){
-        flyingMode=!flyingMode;
-        if(!flyingMode && camY < EYE_H) camY = EYE_H;
+        flyingMode=!flyingMode; 
+        if(!flyingMode && camY < EYE_H) camY = EYE_H; 
     }
     else if(k=='r'||k=='R'){ camX=0; camY=EYE_H; camZ=30; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
     else if(k=='m'||k=='M'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }

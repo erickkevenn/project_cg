@@ -22,12 +22,11 @@ const float EYE_H     =  1.7f;
 
 const float RADIUS    = 0.3f;
 
-float camX = 0.0f, camY = EYE_H, camZ = 27.2f;
+float camX = 0.0f, camY = EYE_H, camZ = 30.0f;
 float yawDeg = 0.0f, pitchDeg = 0.0f;
 bool keyDown[256]{}, spDown[256]{};
 bool flashlightOn = false, mouseCaptured = true, flyingMode = false, doorOpen = false;
 float baseSpeed = 4.0f; int lastMs = 0;
-bool shiftHeld = false;
 
 static inline float deg2rad(float d){ return d*3.1415926535f/180.0f; }
 static inline void  clampPitch(){ pitchDeg = std::max(-89.0f, std::min(89.0f, pitchDeg)); }
@@ -362,7 +361,7 @@ void drawAmbao(){
     float marbleR=0.95f, marbleG=0.95f, marbleB=0.97f;
     
     // Posição do ambão: mais para o lado e virado para as cadeiras
-    float ambaoX = -3.0f;  // Movido mais para o lado
+    float ambaoX = -2.5f;  // Movido mais para o lado
     float ambaoZ = -18.0f; // Movido mais para frente (em direção às cadeiras)
     
     // Base do ambão (degrau) - menor
@@ -617,47 +616,6 @@ void drawChurchOpaque(){
     //drawSphere(20.0f, FLOOR_Y+5.5f, 30.0f, 0.2f, 12, 12, 1.0f, 1.0f, 0.9f);
 }
 
-// Helper: desenha porta dupla no ponto (cx,cz) rotacionada 'yawDeg' em Y
-static void drawDoorAt(float cx, float cz, float yawDeg){
-	float doorR=0.6f, doorG=0.4f, doorB=0.2f;
-	float handleR=0.9f, handleG=0.7f, handleB=0.2f;
-
-	glPushMatrix();
-	glTranslatef(cx, 0.0f, cz);
-	glRotatef(yawDeg, 0,1,0);
-
-	if (doorOpen) {
-		// esquerda aberta
-		glPushMatrix();
-		glTranslatef(-1.0f, 0.0f, 0.0f);
-		glRotatef(90, 0, 1, 0);
-		glTranslatef(1.0f, 0.0f, 0.0f);
-		drawBox(-1.0f, 1.5f, 0.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
-		glPopMatrix();
-
-		// direita aberta
-		glPushMatrix();
-		glTranslatef(1.0f, 0.0f, 0.0f);
-		glRotatef(-90, 0, 1, 0);
-		glTranslatef(-1.0f, 0.0f, 0.0f);
-		drawBox(1.0f, 1.5f, 0.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
-		glPopMatrix();
-
-		// maçanetas
-		drawBox(-1.8f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-		drawBox( 1.8f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-	} else {
-		// duas folhas fechadas
-		drawBox(-1.0f, 1.5f, 0.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
-		drawBox( 1.0f, 1.5f, 0.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
-
-		// maçanetas
-		drawBox(-0.2f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-		drawBox( 0.2f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-	}
-	glPopMatrix();
-}
-
 void drawChurchWindows(){
     // desenha os vitrais nas duas faces da parede (interno e externo)
     const float inset = 0.18f;      // distância da janela em relação à superfície da parede
@@ -798,30 +756,20 @@ bool checkChairCollision(float x, float z){
 }
 
 // Função para verificar colisão com objetos do altar
-bool checkAltarCollision(float x, float z) {
+bool checkAltarCollision(float x, float z){
     // Altar principal
-    if (x >= -2.5f && x <= 2.5f && z >= -23.5f && z <= -21.5f) {
-        return true;
-    }
-
+    if (x >= -2.5f && x <= 2.5f && z >= -23.5f && z <= -21.5f) return true;
+    
     // Ambão
-    if (x >= -3.40f && x <= -2.60f && z >= -18.3f && z <= -17.7f) {
-        return true;
-    }
-
+    if (x >= -2.9f && x <= -2.1f && z >= -18.3f && z <= -17.7f) return true;
+    
     // Estátuas laterais
-    if (x >= -4.9f && x <= -4.1f && z >= -20.2f && z <= -19.8f) { // esquerda
-        return true;
-    }
-    if (x >= 4.1f && x <= 4.9f && z >= -20.2f && z <= -19.8f) { // direita
-        return true;
-    }
-
+    if (x >= -4.9f && x <= -4.1f && z >= -20.2f && z <= -19.8f) return true; // esquerda
+    if (x >= 4.1f && x <= 4.9f && z >= -20.2f && z <= -19.8f) return true;  // direita
+    
     // Cruz processional
-    if (x >= 2.35f && x <= 2.65f && z >= -21.15f && z <= -20.85f) {
-        return true;
-    }
-
+    if (x >= 2.35f && x <= 2.65f && z >= -21.15f && z <= -20.85f) return true;
+    
     return false;
 }
 
@@ -871,47 +819,7 @@ void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
         }
     }
     
-    nx = tx;
-    ny = ty;
-    nz = tz;
-}
-
-//================== OVERLAY 2D (MIRA) ==================
-void drawCrosshair(){
-    // Salva projeção/modelview atuais
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0, WIN_W, 0, WIN_H);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    // Desliga profundidade e iluminação para overlay
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-
-    // Coordenadas do centro da tela
-    int cx = WIN_W / 2;
-    int cy = WIN_H / 2;
-
-    // Desenha cruz simples
-    glLineWidth(2.0f);
-    glColor3f(1.0f, 1.0f, 1.0f); // branco
-    glBegin(GL_LINES);
-        glVertex2i(cx - 8, cy); glVertex2i(cx + 8, cy); // horizontal
-        glVertex2i(cx, cy - 8); glVertex2i(cx, cy + 8); // vertical
-    glEnd();
-
-    // Restaura estado
-    glEnable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-
-    glPopMatrix();              // MODELVIEW
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();              // PROJECTION
-    glMatrixMode(GL_MODELVIEW);
+    nx=tx; ny=ty; nz=tz;
 }
 
 //================== RENDER LOOP ==================
@@ -924,8 +832,6 @@ void display(){
     drawChurchOpaque();
     // 2) transparências (vitral)
     drawChurchWindows();
-
-    drawCrosshair();
 
     glutSwapBuffers();
 }
@@ -945,13 +851,10 @@ void passiveMotion(int x,int y){
     const float sens=0.12f; yawDeg+=dx*sens; pitchDeg-=dy*sens; clampPitch(); captureMouseCenter();
 }
 void keyDownCb(unsigned char k,int,int){
-    unsigned char kk = (k>='A' && k<='Z') ? (k-'A'+'a') : k; // normaliza para minúscula
-    keyDown[kk]=true;
-    shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0;
-
-    if(kk==27) std::exit(0);
-    else if(kk=='f') flashlightOn=!flashlightOn;
-    else if(kk=='v'){
+    keyDown[k]=true;
+    if(k==27) std::exit(0);
+    else if(k=='f'||k=='F') flashlightOn=!flashlightOn;
+    else if(k=='v'||k=='V'){ 
         flyingMode=!flyingMode; 
         if(!flyingMode && camY < EYE_H) camY = EYE_H; 
     }
@@ -959,13 +862,8 @@ void keyDownCb(unsigned char k,int,int){
     else if(k=='m'||k=='M'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
     else if(k=='e'||k=='E'){ doorOpen=!doorOpen; }
 }
-void keyUpCb(unsigned char k,int,int){
-    unsigned char kk = (k>='A' && k<='Z') ? (k-'A'+'a') : k; // normaliza
-    keyDown[kk]=false;
-    shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0;
-}
-void spDownCb(int k,int,int){ spDown[k]=true; shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0; }
-void spUpCb(int k,int,int){ spDown[k]=false; shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0; }
+void keyUpCb(unsigned char k,int,int){ keyDown[k]=false; }
+void spDownCb(int k,int,int){ spDown[k]=true; } void spUpCb(int k,int,int){ spDown[k]=false; }
 
 void idle(){
     int now=glutGet(GLUT_ELAPSED_TIME); 
@@ -1008,7 +906,7 @@ void idle(){
 
     // Calcular velocidade
     float speed=baseSpeed; 
-    if(shiftHeld) speed*=1.8f;
+    if(spDown[GLUT_KEY_SHIFT_L]||spDown[GLUT_KEY_SHIFT_R]) speed*=1.8f;
 
     // Calcular nova posição (limitando o passo para evitar saltos)
     float maxDt = 0.05f; // redundante, mas protege contra spikes
@@ -1018,7 +916,10 @@ void idle(){
 
     // Aplicar colisão
     collideAndMove(newX,newY,newZ,oldX,oldY,oldZ); 
+
+    // Atualizar posição da câmera
     camX=newX; camY=newY; camZ=newZ; 
+
     glutPostRedisplay();
 }
 

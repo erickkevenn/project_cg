@@ -974,9 +974,9 @@ void keyDownCb(unsigned char k,int,int){
         flyingMode=!flyingMode;
         if(!flyingMode && camY < EYE_H) camY = EYE_H;
     }
-    else if(kk=='r'){ camX=0; camY=EYE_H; camZ=27.2f; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
-    else if(kk=='m'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
-    else if(kk=='e'){ doorOpen=!doorOpen; }
+    else if(k=='r'||k=='R'){ camX=0; camY=EYE_H; camZ=30; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
+    else if(k=='m'||k=='M'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
+    else if(k=='e'||k=='E'){ doorOpen=!doorOpen; }
 }
 void keyUpCb(unsigned char k,int,int){
     unsigned char kk = (k>='A' && k<='Z') ? (k-'A'+'a') : k; // normaliza

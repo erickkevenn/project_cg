@@ -13,30 +13,28 @@ Este é um projeto desenvolvido para a disciplina de **Computação Gráfica** d
 - **Piso**: Superfície texturizada com tons naturais
 
 ### 🪟 Janelas e Iluminação
-- **Vitrais Coloridos**: Janelas com vidros coloridos e molduras detalhadas
-- **Janelas Laterais**: Apenas nas laterais, visíveis dos dois lados
-- **Sistema de Iluminação**: Luz ambiente, spotlights e lanterna do jogador
-- **Efeitos de Transparência**: Vidros com transparência realista
+- **Vitrais Coloridos**: Janelas laterais com vidros coloridos
+- **Sistema de Iluminação**: Luz ambiente, spotlight no altar e lanterna do jogador
+- **Transparência**: Blending configurado para os vitrais
 
 ### 🪑 Mobiliário e Objetos
-- **Altar Elevado**: Com degraus pretos e detalhes em mármore (mais largo)
-- **Ambão (Púlpito)**: Estrutura de madeira compacta com microfone e bíblia, posicionado para as cadeiras
-- **Crucifixo Realista**: Cristo em madeira escura com detalhes
-- **Estátuas**: Virgem Maria e São José com flores coloridas
-- **Cadeiras**: Layout organizado virado para o altar
-- **Cruz Processional**: Dourada com base decorativa
+- **Altar**: Base em mármore e degraus
+- **Ambão (Púlpito)**: Estrutura de madeira posicionada à frente
+- **Crucifixo**: Madeira escura na parede do fundo
+- **Estátuas**: Virgem Maria e São José
+- **Cadeiras**: Layout organizado voltado ao altar
+- **Cruz Processional**: Dourada
 
 ### 🌳 Ambiente Externo
-- **Jardim**: Apenas palmeiras altas (sem plantações)
-- **Estacionamento**: Com carros de diferentes cores
-- **Postes de Luz**: Iluminação externa
-- **Gramado**: Área verde ao redor da igreja
+- **Jardim**: Palmeiras laterais
+- **Caminho Frontal**: Piso até a porta
+- **Gramado**: Área verde ao redor
 
 ### 🚪 Interatividade
-- **Portas Duplas**: Duas portas que abrem e fecham com a tecla E
-- **Sistema de Colisão**: Impede atravessar paredes (exceto portas abertas)
-- **Modo Voo**: Permite voar livremente pela cena
-- **Lanterna**: Iluminação direcional controlada pelo jogador
+- **Porta**: Abre/fecha com a tecla E
+- **Sistema de Colisão**: Colisão com paredes, cadeiras e objetos principais
+- **Modo Voo**: Alterna com V (sem colisão)
+- **Lanterna**: Tecla F
 
 ## Controles
 
@@ -47,7 +45,7 @@ Este é um projeto desenvolvido para a disciplina de **Computação Gráfica** d
 | **V** | Alternar modo voo |
 | **F** | Ligar/desligar lanterna |
 | **E** | Abrir/fechar porta |
-| **R** | Resetar posição e configurações |
+| **R** | Resetar posição |
 | **M** | Capturar/liberar mouse |
 | **Shift** | Correr (movimento mais rápido) |
 | **Espaço** | Subir (apenas no modo voo) |
@@ -140,9 +138,8 @@ make all        # Detecta automaticamente o SO
 - **Materiais**: Propriedades de reflexão realistas
 
 ### Física
-- **Colisão AABB**: Detecção simples de colisão
-- **Gravidade**: Aplicada apenas no modo normal
-- **Movimento**: Física básica de primeira pessoa
+- **Colisão**: Paredes, cadeiras e objetos do altar; deslizamento em quinas
+- **Movimento**: Primeira pessoa com WASD
 
 ### Otimizações
 - **Frustum Culling**: Renderização apenas do que está visível
@@ -152,16 +149,13 @@ make all        # Detecta automaticamente o SO
 ## Funcionalidades Implementadas
 
 ### ✅ Completas
-- [x] Estrutura básica da igreja
-- [x] Sistema de câmera em primeira pessoa
-- [x] Controles de movimento e rotação
-- [x] Sistema de iluminação
-- [x] Objetos decorativos realistas
-- [x] Ambiente externo detalhado
+- [x] Estrutura da igreja (paredes, teto, piso)
+- [x] Câmera em primeira pessoa
+- [x] Iluminação
+- [x] Objetos principais (altar, ambão, cruz, estátuas)
+- [x] Ambiente externo (caminho + gramado)
 - [x] Porta interativa
-- [x] Janelas externas
-- [x] Ambão (púlpito)
-- [x] Sistema de colisão
+- [x] Sistema de colisão (paredes, cadeiras e altar)
 - [x] Modo voo
 - [x] Lanterna do jogador
 
@@ -179,10 +173,10 @@ make all        # Detecta automaticamente o SO
 - Projeto desenvolvido para a disciplina de Computação Gráfica - UFAL
 
 ### Versão
-- **v1.0**: Versão inicial com funcionalidades básicas
-- **v1.1**: Adicionado ambão e janelas externas
-- **v1.2**: Implementada porta interativa
-- **v1.3**: Melhorias no altar, ambão, porta e janelas externas
+- **v1.0**: Versão inicial
+- **v1.1**: Objetos principais e ambiente externo
+- **v1.2**: Porta interativa
+- **v1.3**: Sistema de colisão refinado (paredes, cadeiras e altar)
 
 ### Licença
 Este projeto é desenvolvido para fins educacionais na UFAL.

@@ -1,7 +1,3 @@
-// arquivo: igreja_melhorada.cpp
-// g++ igreja_melhorada.cpp -o igreja.exe -lfreeglut -lopengl32 -lglu32
-// Igreja moderna com fachada em V, entrada realista e objetos detalhados
-
 #include <GL/freeglut.h>
 #include <cmath>
 #include <cstdio>
@@ -22,7 +18,7 @@ const float EYE_H     =  1.7f;
 
 const float RADIUS    = 0.3f;
 
-float camX = 0.0f, camY = EYE_H, camZ = 30.0f;
+float camX = 0.0f, camY = EYE_H, camZ = 27.2f;
 float yawDeg = 0.0f, pitchDeg = 0.0f;
 bool keyDown[256]{}, spDown[256]{};
 bool flashlightOn = false, mouseCaptured = true, flyingMode = false, doorOpen = false;
@@ -579,6 +575,159 @@ void drawFrontPath(){
     }
 }
 
+static void drawWallSegment(float x0,float z0,float x1,float z1, float height, float thickness,
+    float r,float g,float b){
+float dx = x1 - x0, dz = z1 - z0;
+float len = std::sqrt(dx*dx + dz*dz);
+float angDeg = std::atan2(dz, dx) * 180.0f / 3.1415926535f;
+float cx = (x0 + x1) * 0.5f;
+float cz = (z0 + z1) * 0.5f;
+
+glPushMatrix();
+glTranslatef(cx, height*0.5f, cz);
+glRotatef(-angDeg, 0,1,0); // alinhar eixo X local com a aresta
+drawBox(0,0,0, len, height, thickness, r,g,b);
+glPopMatrix();
+}
+
+// Heptágono (7 vértices) com a parte frontal mais regular
+static void drawChurchWallsHeptagon(){
+    float r=0.80f,g=0.74f,b=0.68f; // cor das paredes
+    float H=CH_HEIGHT, T=WALL_T;
+
+    // Vértices no plano XZ
+    // Ajustei os valores apenas para a parte frontal (v0, v1, v2, v3, v4)
+
+    // Parâmetros “base” da frente
+    float zLow=8.0f, zHigh=12.0f, zTip=15.0f;
+    float xWide=6.0f, xMid=3.0f;
+
+    // Quanto aproximar dos vértices do fundo (0 = nada, 1 = encostar)
+    float kEdge = 0.5f; // aproxima v0→v6 e v4→v5 (encurta as arestas das “quinas”)
+    float kSide = 0.15f; // opcional: aproxima v1→v6 e v3→v5 para suavizar as laterais
+
+    auto lerp2 = [](float ax,float az,float bx,float bz,float t){
+        return std::pair<float,float>{ ax + (bx-ax)*t, az + (bz-az)*t };
+    };
+
+    // Bases da frente
+    float v0bX=-xWide, v0bZ=zLow;
+    float v1bX=-xMid,  v1bZ=zHigh;
+    float v2bX= 0.0f,  v2bZ=zTip;
+    float v3bX= xMid,  v3bZ=zHigh;
+    float v4bX= xWide, v4bZ=zLow;
+
+    // Fundo (fixos)
+    float v5X= 6.0f, v5Z=-15.0f; // NÃO alterar
+    float v6X=-6.0f, v6Z=-15.0f; // NÃO alterar
+
+    // Aproxima quinas da frente dos vértices do fundo
+    auto v0p = lerp2(v0bX,v0bZ, v6X,v6Z, kEdge);
+    auto v4p = lerp2(v4bX,v4bZ, v5X,v5Z, kEdge);
+
+    // Opcional: aproxima laterais para manter forma suave
+    auto v1p = lerp2(v1bX,v1bZ, v6X,v6Z, kSide);
+    auto v3p = lerp2(v3bX,v3bZ, v5X,v5Z, kSide);
+
+    // Monta V mantendo v5 e v6
+    float V[7][2] = {
+        { v0p.first, v0p.second }, // v0 aproximado de v6
+        { v1p.first, v1p.second }, // v1 aproximado (leve) de v6
+        { v2bX,      v2bZ       }, // v2 (ponta) permanece
+        { v3p.first, v3p.second }, // v3 aproximado (leve) de v5
+        { v4p.first, v4p.second }, // v4 aproximado de v5
+        { v5X,       v5Z       },  // v5 fixo
+        { v6X,       v6Z       }   // v6 fixo
+    };
+
+    auto W = [&](int i,int j){
+        drawWallSegment(V[i][0],V[i][1], V[j][0],V[j][1], H,T, r,g,b);
+    };
+
+    // Desenha todos os 7 segmentos para fechar a forma
+    W(0,1);
+    W(1,2);
+    W(2,3);
+    W(3,4);
+    W(4,5);
+    W(5,6);
+    W(6,0);
+}
+
+// Helper: desenha porta dupla no ponto (cx,cz) rotacionada 'yawDeg' em Y
+static void drawDoorAt(float cx, float cz, float yawDeg){
+	float doorR=0.6f, doorG=0.4f, doorB=0.2f;
+	float handleR=0.9f, handleG=0.7f, handleB=0.2f;
+
+	glPushMatrix();
+	glTranslatef(cx, 0.0f, cz);
+	glRotatef(yawDeg, 0,1,0);
+
+	if (doorOpen) {
+		// esquerda aberta
+		glPushMatrix();
+		glTranslatef(-1.0f, 0.0f, 0.0f);
+		glRotatef(90, 0, 1, 0);
+		glTranslatef(1.0f, 0.0f, 0.0f);
+		drawBox(-1.0f, 1.5f, 0.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
+		glPopMatrix();
+
+		// direita aberta
+		glPushMatrix();
+		glTranslatef(1.0f, 0.0f, 0.0f);
+		glRotatef(-90, 0, 1, 0);
+		glTranslatef(-1.0f, 0.0f, 0.0f);
+		drawBox(1.0f, 1.5f, 0.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
+		glPopMatrix();
+
+		// maçanetas
+		drawBox(-1.8f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
+		drawBox( 1.8f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
+	} else {
+		// duas folhas fechadas
+		drawBox(-1.0f, 1.5f, 0.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
+		drawBox( 1.0f, 1.5f, 0.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
+
+		// maçanetas
+		drawBox(-0.2f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
+		drawBox( 0.2f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
+	}
+	glPopMatrix();
+}
+
+static void drawWindowOnSegment(float x0,float z0,float x1,float z1, float t){
+	// ponto ao longo da aresta
+	float x = x0 + (x1 - x0)*t;
+	float z = z0 + (z1 - z0)*t;
+	// ângulo da aresta, janela fica perpendicular (gira +90)
+	float angDeg = std::atan2(z1 - z0, x1 - x0) * 180.0f / 3.1415926535f + 90.0f;
+
+	glPushMatrix();
+	glTranslatef(x, 2.0f, z);       // altura do vitral ≈ 2.0
+	glRotatef(angDeg, 0,1,0);
+	drawStainedGlassXY();
+	glPopMatrix();
+}
+
+static void drawPentagonSideWindows(){
+	// mesmos vértices do pentágono
+	float V[5][2] = {
+		{-6.0f, 10.0f},  { 0.0f, 15.0f},  { 6.0f, 10.0f},
+		{ 4.0f,-25.0f},  {-4.0f,-25.0f}
+	};
+	// laterais: V2->V3 e V4->V0
+	float t1=0.33f, t2=0.66f;
+
+	// Lado direito (V2->V3)
+	drawWindowOnSegment(V[2][0],V[2][1], V[3][0],V[3][1], t1);
+	drawWindowOnSegment(V[2][0],V[2][1], V[3][0],V[3][1], t2);
+
+	// Lado esquerdo (V4->V0)
+	drawWindowOnSegment(V[4][0],V[4][1], V[0][0],V[0][1], t1);
+	drawWindowOnSegment(V[4][0],V[4][1], V[0][0],V[0][1], t2);
+}
+
+
 //================== IGREJA PRINCIPAL ==================
 void drawChurchOpaque(){
     // Cores mais realistas
@@ -587,13 +736,18 @@ void drawChurchOpaque(){
     float floorR=0.78f, floorG=0.77f, floorB=0.75f; // piso claro sem branco puro
 
     // Piso, teto
-    drawBox(0.0f, FLOOR_Y-0.05f, -5.0f, CH_WIDTH, 0.1f, CH_DEPTH, floorR,floorG,floorB);
-    drawBox(0.0f, CH_HEIGHT, -5.0f,   CH_WIDTH, 0.1f, CH_DEPTH,  ceilR,ceilG,ceilB);
+    //drawBox(0.0f, FLOOR_Y-0.05f, -5.0f, CH_WIDTH, 0.1f, CH_DEPTH, floorR,floorG,floorB);
+    //drawBox(0.0f, CH_HEIGHT, -5.0f,   CH_WIDTH, 0.1f, CH_DEPTH,  ceilR,ceilG,ceilB);
 
     // Paredes
-    drawBox(-CH_WIDTH*0.5f, CH_HEIGHT*0.5f, -5.0f, WALL_T, CH_HEIGHT, CH_DEPTH, wallR,wallG,wallB);
-    drawBox( CH_WIDTH*0.5f, CH_HEIGHT*0.5f, -5.0f, WALL_T, CH_HEIGHT, CH_DEPTH, wallR,wallG,wallB);
-    drawBox(0.0f, CH_HEIGHT*0.5f, -25.0f,   CH_WIDTH, CH_HEIGHT, WALL_T, wallR,wallG,wallB);
+    // drawBox(-CH_WIDTH*0.5f, CH_HEIGHT*0.5f, -5.0f, WALL_T, CH_HEIGHT, CH_DEPTH, wallR,wallG,wallB);
+    //drawBox( CH_WIDTH*0.5f, CH_HEIGHT*0.5f, -5.0f, WALL_T, CH_HEIGHT, CH_DEPTH, wallR,wallG,wallB);
+    //drawBox(0.0f, CH_HEIGHT*0.5f, -25.0f,   CH_WIDTH, CH_HEIGHT, WALL_T, wallR,wallG,wallB);
+
+    glPushMatrix();
+    glRotatef(180.0f, 0, 1, 0);   // rotaciona 180° em torno do eixo Y
+    drawChurchWallsHeptagon();
+    glPopMatrix();
 
     // Frente (porta) - CORRIGIDO: entrada no nível do chão
     drawBox(-(CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 15.0f,
@@ -741,30 +895,38 @@ void applyCamera(){
 
 //================== COLISÃO E MOVIMENTO ==================
 void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
-    if (flyingMode) {
-        // No modo voo, não há colisão - movimento livre
-        return;
-    }
-    
-    // Colisão normal (apenas no chão)
-    float halfW=CH_WIDTH*0.5f, backZ=-25, frontZ=15;
-    float tx=nx, ty=ny, tz=nz;
-    
-    // Manter altura do chão
-    if (ty < EYE_H) ty = EYE_H;
-    
-    if (oz>backZ-RADIUS && oz<frontZ+RADIUS){
-        if (tx<-halfW+RADIUS) tx=-halfW+RADIUS;
-        if (tx> halfW-RADIUS) tx= halfW-RADIUS;
-    }
-    if (ox>-halfW-RADIUS && ox<halfW+RADIUS){
-        if (tz<backZ+RADIUS) tz=backZ+RADIUS;
-        if (tz>frontZ-RADIUS){ 
-            // Se a porta estiver fechada, não pode passar
-            if (!doorOpen && std::fabs(tx)>DOOR_HALF) tz=frontZ-RADIUS; 
-        }
-    }
-    nx=tx; ny=ty; nz=tz;
+	if (flyingMode) return;
+
+	const float halfW = CH_WIDTH*0.5f;
+	const float backZ = -25.0f;
+	const float frontZ = 15.0f;
+
+	float tx=nx, ty=ny, tz=nz;
+
+	// manter altura do chão
+	if (ty < EYE_H) ty = EYE_H;
+
+	// limitar X quando (pelo Z antigo) você estava dentro do volume da igreja
+	if (oz > backZ - RADIUS && oz < frontZ + RADIUS){
+		if (tx < -halfW + RADIUS) tx = -halfW + RADIUS;
+		if (tx >  halfW - RADIUS) tx =  halfW - RADIUS;
+	}
+
+	// limitar Z quando (pelo X novo) você está dentro da largura da igreja
+	if (tx > -halfW - RADIUS && tx < halfW + RADIUS){
+		// fundo
+		if (oz >= backZ + RADIUS && tz < backZ + RADIUS) tz = backZ + RADIUS;
+
+		// frente (parede/porta)
+		if (!doorOpen){
+			// bloqueia sair de dentro para fora
+			if (oz <= frontZ - RADIUS && tz > frontZ - RADIUS) tz = frontZ - RADIUS;
+			// bloqueia entrar de fora para dentro
+			if (oz >= frontZ + RADIUS && tz < frontZ + RADIUS) tz = frontZ + RADIUS;
+		}
+	}
+
+	nx=tx; ny=ty; nz=tz;
 }
 
 //================== RENDER LOOP ==================
@@ -803,7 +965,7 @@ void keyDownCb(unsigned char k,int,int){
         flyingMode=!flyingMode; 
         if(!flyingMode && camY < EYE_H) camY = EYE_H; 
     }
-    else if(k=='r'||k=='R'){ camX=0; camY=EYE_H; camZ=30; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
+    else if(k=='r'||k=='R'){ camX=0; camY=EYE_H; camZ=27.2f; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
     else if(k=='m'||k=='M'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
     else if(k=='e'||k=='E'){ doorOpen=!doorOpen; }
 }
@@ -811,31 +973,35 @@ void keyUpCb(unsigned char k,int,int){ keyDown[k]=false; }
 void spDownCb(int k,int,int){ spDown[k]=true; } void spUpCb(int k,int,int){ spDown[k]=false; }
 
 void idle(){
-    int now=glutGet(GLUT_ELAPSED_TIME); float dt=(now-lastMs)/1000.0f; lastMs=now;
-    float fx,fy,fz,rx,rz; getLookVectors(fx,fy,fz,rx,rz);
-    float mvx=0, mvy=0, mvz=0;
-    
-    // Movimento horizontal
-    if(keyDown['w']||keyDown['W']){ mvx+=fx; mvz+=fz; }
-    if(keyDown['s']||keyDown['S']){ mvx-=fx; mvz-=fz; }
-    if(keyDown['a']||keyDown['A']){ mvx-=rx; mvz-=rz; }
-    if(keyDown['d']||keyDown['D']){ mvx+=rx; mvz+=rz; }
-    
-    // Movimento vertical (apenas no modo voo)
-    if(flyingMode) {
-        if(keyDown[' ']) mvy += 1.0f;  // Espaço para subir
-        if(keyDown['c']||keyDown['C']) mvy -= 1.0f;  // C para descer
-    }
-    
-    float len=std::sqrt(mvx*mvx+mvz*mvz); if(len>0.0001f){ mvx/=len; mvz/=len; }
-    float speed=baseSpeed; if(spDown[GLUT_KEY_SHIFT_L]||spDown[GLUT_KEY_SHIFT_R]) speed*=1.8f;
-    
-    float oldX=camX, oldY=camY, oldZ=camZ; 
-    float newX=camX+mvx*speed*dt, newY=camY+mvy*speed*dt, newZ=camZ+mvz*speed*dt;
-    
-    collideAndMove(newX,newY,newZ,oldX,oldY,oldZ); 
-    camX=newX; camY=newY; camZ=newZ; 
-    glutPostRedisplay();
+	int now=glutGet(GLUT_ELAPSED_TIME); 
+	float dt=(now-lastMs)/1000.0f; 
+	lastMs=now;
+	if (dt > 0.05f) dt = 0.05f; // cap simples de dt para evitar atravessar paredes
+
+	float fx,fy,fz,rx,rz; getLookVectors(fx,fy,fz,rx,rz);
+	float mvx=0, mvy=0, mvz=0;
+
+	// Movimento horizontal
+	if(keyDown['w']||keyDown['W']){ mvx+=fx; mvz+=fz; }
+	if(keyDown['s']||keyDown['S']){ mvx-=fx; mvz-=fz; }
+	if(keyDown['a']||keyDown['A']){ mvx-=rx; mvz-=rz; }
+	if(keyDown['d']||keyDown['D']){ mvx+=rx; mvz+=rz; }
+
+	// Movimento vertical (apenas no modo voo)
+	if(flyingMode) {
+		if(keyDown[' ']) mvy += 1.0f;
+		if(keyDown['c']||keyDown['C']) mvy -= 1.0f;
+	}
+
+	float len=std::sqrt(mvx*mvx+mvz*mvz); if(len>0.0001f){ mvx/=len; mvz/=len; }
+	float speed=baseSpeed; if(spDown[GLUT_KEY_SHIFT_L]||spDown[GLUT_KEY_SHIFT_R]) speed*=1.8f;
+
+	float oldX=camX, oldY=camY, oldZ=camZ; 
+	float newX=camX+mvx*speed*dt, newY=camY+mvy*speed*dt, newZ=camZ+mvz*speed*dt;
+
+	collideAndMove(newX,newY,newZ,oldX,oldY,oldZ); 
+	camX=newX; camY=newY; camZ=newZ; 
+	glutPostRedisplay();
 }
 
 //================== INIT/MAIN ==================

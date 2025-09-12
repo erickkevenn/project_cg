@@ -1,19 +1,14 @@
-// arquivo: igreja_melhorada.cpp
-// g++ igreja_melhorada.cpp -o igreja.exe -lfreeglut -lopengl32 -lglu32
-// Igreja moderna com fachada em V, entrada realista e objetos detalhados
-
 #include <GL/freeglut.h>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
 
-//================== CONFIG ==================
-static const char* TITLE = "Igreja Moderna 3D — V=Voar, F=Lanterna, R=Reset, M=Mouse, E=Porta";
+static const char* TITLE = "Igreja Tabuleiro dos Martins ";
 int   WIN_W = 1280, WIN_H = 720;
 
-const float CH_WIDTH  = 12.0f;   // x interno -6..+6
-const float CH_DEPTH  = 40.0f;   // z interno -25..+15
+const float CH_WIDTH  = 12.0f;  
+const float CH_DEPTH  = 40.0f;   
 const float CH_HEIGHT =  6.0f;
 const float DOOR_HALF =  2.0f;
 const float WALL_T    =  0.2f;
@@ -22,12 +17,14 @@ const float EYE_H     =  1.7f;
 
 const float RADIUS    = 0.3f;
 
-float camX = 0.0f, camY = EYE_H, camZ = 30.0f;
+float camX = 0.0f, camY = EYE_H, camZ = 27.2f;
 float yawDeg = 0.0f, pitchDeg = 0.0f;
 bool keyDown[256]{}, spDown[256]{};
 bool flashlightOn = false, mouseCaptured = true, flyingMode = false, doorOpen = false;
 float baseSpeed = 4.0f; int lastMs = 0;
+bool shiftHeld = false;
 
+static float speedMul = 1.0f; // suavização de corrida
 static inline float deg2rad(float d){ return d*3.1415926535f/180.0f; }
 static inline void  clampPitch(){ pitchDeg = std::max(-89.0f, std::min(89.0f, pitchDeg)); }
 
@@ -261,14 +258,15 @@ void drawRealisticCrucifix(){
     
     // Cristo (corpo realista com tons de pele)
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
-    drawBox(0.0f, 4.2f, -24.75f, 0.15f, 0.8f, 0.05f, skinR, skinG, skinB);
-    drawBox(0.0f, 4.6f, -24.75f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.2f, -24.75f, 0.15f, 1.5f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.7f, -24.75f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
     
-    // Braços
-    drawBox(-0.3f, 4.4f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
+    // Braços (esquerdo e direito)
+    drawBox(-0.45f, 4.5f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
+    drawBox( 0.45f, 4.5f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
     
     // Pano branco cobrindo a cintura
-    drawBox(0.0f, 3.9f, -24.7f, 0.25f, 0.3f, 0.03f, 1.0f, 1.0f, 1.0f);
+    drawBox(0.0f, 4.1f, -24.7f, 0.25f, 0.3f, 0.03f, 1.0f, 1.0f, 1.0f);
 }
 
 void drawRealisticStatues(){
@@ -276,35 +274,36 @@ void drawRealisticStatues(){
     float blueR=0.2f, blueG=0.4f, blueB=0.8f;
     float whiteR=0.95f, whiteG=0.95f, whiteB=0.98f;
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
+
+    const float DY = 2.20f;
     
-    // Prateleira branca fixada na parede
-    //drawBox(-4.5f, FLOOR_Y+1.2f, -20.0f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
+    // Prateleira branca fixada na parede (mais em baixo)
+    drawBox(-2.5f, FLOOR_Y+0.8f + DY, -24.8f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
     
     // Corpo (vestido azul)
-    drawBox(-4.5f, FLOOR_Y+1.0f, -20.0f, 0.3f, 1.2f, 0.2f, blueR, blueG, blueB);
+    drawBox(-2.5f, FLOOR_Y+1.4f + DY, -24.8f, 0.3f, 1.2f, 0.2f, blueR, blueG, blueB);
     
-    // Cabeça
-    drawSphere(-4.5f, FLOOR_Y+1.8f, -20.0f, 0.12f, 12, 12, skinR, skinG, skinB);
+    // Cabeça - mais alta
+    drawSphere(-2.5f, FLOOR_Y+2.2f + DY, -24.8f, 0.12f, 12, 12, skinR, skinG, skinB);
     
     // Manto branco
-    drawBox(-4.5f, FLOOR_Y+1.3f, -20.0f, 0.4f, 0.8f, 0.15f, whiteR, whiteG, whiteB);
+    drawBox(-2.5f, FLOOR_Y+1.7f + DY, -24.8f, 0.4f, 0.8f, 0.15f, whiteR, whiteG, whiteB);
     
     // Estátua de São José (direita) - em prateleira branca
     float brownR=0.6f, brownG=0.4f, brownB=0.2f;
     
     // Prateleira branca fixada na parede
-    //drawBox(4.5f, FLOOR_Y+1.2f, -20.0f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
+    drawBox( 2.5f, FLOOR_Y+0.8f + DY, -24.8f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
     
-    // Corpo (túnica marrom)
-    drawBox(4.5f, FLOOR_Y+1.0f, -20.0f, 0.3f, 1.2f, 0.2f, brownR, brownG, brownB);
+    // Corpo (túnica marrom) 
+    drawBox( 2.5f, FLOOR_Y+1.4f + DY, -24.8f, 0.3f, 1.2f, 0.2f, brownR, brownG, brownB);
     
-    // Cabeça
-    drawSphere(4.5f, FLOOR_Y+1.8f, -20.0f, 0.12f, 12, 12, skinR, skinG, skinB);
+    // Cabeça - mais alta
+    drawSphere( 2.5f, FLOOR_Y+2.2f + DY, -24.8f, 0.12f, 12, 12, skinR, skinG, skinB);
     
-    // Cajado
-    drawBox(4.7f, FLOOR_Y+1.2f, -20.0f, 0.03f, 1.0f, 0.03f, 0.4f, 0.3f, 0.2f);
+    // Cajado - acompanha a subida
+    drawBox( 2.7f, FLOOR_Y+1.6f + DY, -24.8f, 0.03f, 1.0f, 0.03f, 0.4f, 0.3f, 0.2f);
 }
-
 
 void drawProcessionalCross(){
     float goldR=0.9f, goldG=0.7f, goldB=0.2f;
@@ -341,10 +340,10 @@ void drawAmbaoSymbol(float xCenter, float yCenter, float zFrontFace){
     drawBox(xCenter, yCenter-0.33f, zSym, 0.26f, 0.03f, 0.02f, K,K,K);
 
     // Cálice (taça + haste)
-    drawBox(xCenter, yCenter-0.10f, zSym, 0.15f, 0.10f, 0.02f, K,K,K);   // “taça”
+    drawBox(xCenter, yCenter-0.10f, zSym, 0.15f, 0.10f, 0.02f, K,K,K);   // "taça"
     drawBox(xCenter, yCenter-0.22f, zSym, 0.03f, 0.12f, 0.02f, K,K,K);   // haste
 
-    // “Chamas” laterais (aproximação com retângulos inclinados)
+    // "Chamas" laterais (aproximação com retângulos inclinados)
     glPushMatrix(); glTranslatef(xCenter-0.12f, yCenter-0.08f, zSym); glRotatef(20,0,0,1);
     drawBox(0,0,0, 0.05f, 0.12f, 0.02f, K,K,K); glPopMatrix();
     glPushMatrix(); glTranslatef(xCenter+0.12f, yCenter-0.08f, zSym); glRotatef(-20,0,0,1);
@@ -443,7 +442,7 @@ void drawDoor(){
 void drawPlasticChairWhite(){
     // tons off-white para não estourar na luz
     const float body = 0.93f;   // assento/encosto
-    const float frame= 0.88f;   // “tubos”/pernas
+    const float frame= 0.88f;   // "tubos"/pernas
 
     // assento
     drawBox(0.0f, 0.44f, 0.0f,  0.48f, 0.05f, 0.46f,  body, body, body);
@@ -637,7 +636,7 @@ void drawChurchWindows(){
     glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE); // não grava no depth para não “cortar” transparências
+    glDepthMask(GL_FALSE); // não grava no depth para não "cortar" transparências
 
     // Mesmas posições de janelas que você já usa
     const float Y = 2.0f;
@@ -658,7 +657,7 @@ void setupLights(){
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
-    // Ambiente baixo (evita “lavado”)
+    // Ambiente baixo (evita "lavado")
     GLfloat globalAmb[4] = {0.14f,0.14f,0.14f,1.0f};
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmb);
 
@@ -672,7 +671,7 @@ void setupLights(){
     glLightfv(GL_LIGHT0, GL_AMBIENT,  amb0);
     glLightfv(GL_LIGHT0, GL_SPECULAR, spec0);
 
-    // “Spot” suave no altar
+    // "Spot" suave no altar
     glEnable(GL_LIGHT2);
     GLfloat pos2[4] = { 0.0f, 4.0f, -22.0f, 1.0f };
     GLfloat dif2[4] = { 0.55f,0.55f,0.55f,1.0f };
@@ -794,10 +793,30 @@ void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
     
     // Colisão com paredes frontal e traseira
     if (tx > -halfW-RADIUS && tx < halfW+RADIUS){
-        if (tz<backZ+RADIUS) tz=backZ+RADIUS;
-        if (tz>frontZ-RADIUS){ 
-            // Se a porta estiver fechada, não pode passar
-            if (!doorOpen && std::fabs(tx)>DOOR_HALF) tz=frontZ-RADIUS; 
+        // parede de trás
+        if (tz < backZ + RADIUS) tz = backZ + RADIUS;
+
+        // parede da frente (z=frontZ)
+        // Porta fechada: bloqueia tudo; aberta: bloqueia laterais (|x| > DOOR_HALF)
+        bool bloqueia = !doorOpen || (std::fabs(tx) > DOOR_HALF);
+
+        if (bloqueia) {
+            // Só empurra se tentar cruzar o plano da parede a partir do lado onde está
+            const float eps = 0.0005f;
+            bool estavaFora   = (oz >= frontZ + RADIUS - eps);
+            bool estavaDentro = (oz <= frontZ - RADIUS + eps);
+
+            if (estavaFora) {
+                // Fora: só clampa se tentou entrar (tz < frontZ + RADIUS)
+                if (tz < frontZ + RADIUS) tz = frontZ + RADIUS;
+            } else if (estavaDentro) {
+                // Dentro: só clampa se tentou sair (tz > frontZ - RADIUS)
+                if (tz > frontZ - RADIUS) tz = frontZ - RADIUS;
+            } else {
+                // Se começou exatamente na "faixa" da parede, decide pelo sentido do passo
+                if (tz < frontZ) tz = frontZ - RADIUS;
+                else             tz = frontZ + RADIUS;
+            }
         }
     }
     
@@ -822,6 +841,111 @@ void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
     nx=tx; ny=ty; nz=tz;
 }
 
+//================== OVERLAY 2D (MIRA) ==================
+void drawCrosshair(){
+    // Salva projeção/modelview atuais
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, WIN_W, 0, WIN_H);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Desliga profundidade e iluminação para overlay
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
+    // Coordenadas do centro da tela
+    int cx = WIN_W / 2;
+    int cy = WIN_H / 2;
+
+    // Desenha cruz simples
+    glLineWidth(2.0f);
+    glColor3f(1.0f, 1.0f, 1.0f); // branco
+    glBegin(GL_LINES);
+        glVertex2i(cx - 8, cy); glVertex2i(cx + 8, cy); // horizontal
+        glVertex2i(cx, cy - 8); glVertex2i(cx, cy + 8); // vertical
+    glEnd();
+
+    // Restaura estado
+    glEnable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
+
+    glPopMatrix();              // MODELVIEW
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();              // PROJECTION
+    glMatrixMode(GL_MODELVIEW);
+}
+
+//================== UI 2D: BOTÃO DA PORTA ==================
+// Retângulo do botão em coordenadas de tela (pixels)
+inline void getDoorButtonRect(int& x,int& y,int& w,int& h){
+    x = 20; w = 200; h = 40; y = 20; // canto inferior esquerdo
+}
+
+inline bool isInsideDoorButton(int mx, int my){
+    int bx,by,bw,bh; getDoorButtonRect(bx,by,bw,bh);
+    return (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh);
+}
+
+void drawDoorUIButton(){
+    // Configura ortho 2D
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, WIN_W, 0, WIN_H);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
+    int bx,by,bw,bh; getDoorButtonRect(bx,by,bw,bh);
+
+    // Fundo do botão
+    float r = doorOpen ? 0.20f : 0.20f;
+    float g = doorOpen ? 0.60f : 0.20f;
+    float b = doorOpen ? 0.20f : 0.60f;
+    glColor3f(r,g,b);
+    glBegin(GL_QUADS);
+        glVertex2i(bx,     by);
+        glVertex2i(bx+bw,  by);
+        glVertex2i(bx+bw,  by+bh);
+        glVertex2i(bx,     by+bh);
+    glEnd();
+
+    // Borda
+    glColor3f(1,1,1);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+        glVertex2i(bx,     by);
+        glVertex2i(bx+bw,  by);
+        glVertex2i(bx+bw,  by+bh);
+        glVertex2i(bx,     by+bh);
+    glEnd();
+
+    // Texto
+    const char* label1 = "Porta";
+    const char* label2 = doorOpen ? "Aberta (clique p/ fechar)" : "Fechada (clique p/ abrir)";
+    int tx = bx + 10; int ty = by + bh - 14; // perto do topo
+    glRasterPos2i(tx, ty);
+    for(const char* p=label1; *p; ++p) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *p);
+    glRasterPos2i(tx, by + 10);
+    for(const char* p=label2; *p; ++p) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *p);
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+}
+
 //================== RENDER LOOP ==================
 void display(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -832,6 +956,11 @@ void display(){
     drawChurchOpaque();
     // 2) transparências (vitral)
     drawChurchWindows();
+
+    drawCrosshair();
+
+    // UI 2D: botão da porta
+    drawDoorUIButton();
 
     glutSwapBuffers();
 }
@@ -851,19 +980,38 @@ void passiveMotion(int x,int y){
     const float sens=0.12f; yawDeg+=dx*sens; pitchDeg-=dy*sens; clampPitch(); captureMouseCenter();
 }
 void keyDownCb(unsigned char k,int,int){
-    keyDown[k]=true;
-    if(k==27) std::exit(0);
-    else if(k=='f'||k=='F') flashlightOn=!flashlightOn;
-    else if(k=='v'||k=='V'){ 
-        flyingMode=!flyingMode; 
-        if(!flyingMode && camY < EYE_H) camY = EYE_H; 
+    unsigned char kk = (k>='A' && k<='Z') ? (k-'A'+'a') : k; // normaliza para minúscula
+    keyDown[kk]=true;
+    shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0;
+
+    if(kk==27) std::exit(0);
+    else if(kk=='f') flashlightOn=!flashlightOn;
+    else if(kk=='v'){
+        flyingMode=!flyingMode;
+        if(!flyingMode && camY < EYE_H) camY = EYE_H;
     }
-    else if(k=='r'||k=='R'){ camX=0; camY=EYE_H; camZ=30; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
-    else if(k=='m'||k=='M'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
-    else if(k=='e'||k=='E'){ doorOpen=!doorOpen; }
+    else if(kk=='r'){ camX=0; camY=EYE_H; camZ=27.2f; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
+    else if(kk=='m'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
+    else if(kk=='e'){ doorOpen=!doorOpen; }
 }
-void keyUpCb(unsigned char k,int,int){ keyDown[k]=false; }
-void spDownCb(int k,int,int){ spDown[k]=true; } void spUpCb(int k,int,int){ spDown[k]=false; }
+void keyUpCb(unsigned char k,int,int){
+    unsigned char kk = (k>='A' && k<='Z') ? (k-'A'+'a') : k; // normaliza
+    keyDown[kk]=false;
+    shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0;
+}
+
+// Callback de mouse: clique no botão da porta
+void mouseCb(int button, int state, int x, int y){
+    // GLUT entrega y com origem no topo; converter para origem inferior
+    int yFromBottom = WIN_H - y;
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
+        if (isInsideDoorButton(x, yFromBottom)){
+            doorOpen = !doorOpen;
+        }
+    }
+}
+void spDownCb(int k,int,int){ spDown[k]=true; shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0; }
+void spUpCb(int k,int,int){ spDown[k]=false; shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0; }
 
 void idle(){
     int now=glutGet(GLUT_ELAPSED_TIME); 
@@ -878,8 +1026,13 @@ void idle(){
     float mvx=0, mvy=0, mvz=0;
     
     // Verificar se alguma tecla está pressionada antes de calcular movimento
-    bool anyKeyPressed = false;
-    
+    bool anyKeyPressed =
+        keyDown['w']||keyDown['W']||keyDown['s']||keyDown['S']||
+        keyDown['a']||keyDown['A']||keyDown['d']||keyDown['D']||
+        (flyingMode && (keyDown[' ']||keyDown['c']||keyDown['C']));
+
+    glutPostRedisplay(); // redesenha sempre
+
     // Movimento horizontal
     if(keyDown['w']||keyDown['W']){ mvx+=fx; mvz+=fz; anyKeyPressed = true; }
     if(keyDown['s']||keyDown['S']){ mvx-=fx; mvz-=fz; anyKeyPressed = true; }
@@ -892,33 +1045,37 @@ void idle(){
         if(keyDown['c']||keyDown['C']) { mvy -= 1.0f; anyKeyPressed = true; }  // C para descer
     }
     
-    // Se nenhuma tecla está pressionada, nada a fazer
-    anyKeyPressed = keyDown['w']||keyDown['W']||keyDown['s']||keyDown['S']||
-                         keyDown['a']||keyDown['A']||keyDown['d']||keyDown['D']||
-                         (flyingMode && (keyDown[' ']||keyDown['c']||keyDown['C']));
-    if (!anyKeyPressed){
+    // Normalizar movimento horizontal
+    float len = std::sqrt(mvx*mvx + mvz*mvz);
+    if (len > 0.0001f) { mvx/=len; mvz/=len; }
+
+    // Detectar Shift a partir das teclas especiais (estável no idle)
+    bool shiftHeld = (spDown[GLUT_KEY_SHIFT_L] || spDown[GLUT_KEY_SHIFT_R]);
+
+    // Suavizar transição do multiplicador (aceleração/frenagem suave)
+    float targetMul = shiftHeld ? 1.8f : 1.0f;
+    // fator ~exp decay para suavizar independente de FPS
+    float k = 1.0f - std::exp(-dt * 12.0f);
+    speedMul += (targetMul - speedMul) * k;
+
+    float speed = baseSpeed * speedMul;
+
+    if (!anyKeyPressed) {
+        // sem movimento: não atualiza posição (mas já chamamos redisplay)
         return;
     }
 
-    // Normalizar movimento horizontal
-    float len=std::sqrt(mvx*mvx+mvz*mvz); 
-    if(len>0.0001f){ mvx/=len; mvz/=len; }
+    // Calcular nova posição
+    float maxDt = 0.05f;
+    float usedDt = (dt > maxDt ? maxDt : dt);
+    float oldX = camX, oldY = camY, oldZ = camZ;
+    float newX = camX + mvx*speed*usedDt;
+    float newY = camY + mvy*speed*usedDt;
+    float newZ = camZ + mvz*speed*usedDt;
 
-    // Calcular velocidade
-    float speed=baseSpeed; 
-    if(spDown[GLUT_KEY_SHIFT_L]||spDown[GLUT_KEY_SHIFT_R]) speed*=1.8f;
-
-    // Calcular nova posição (limitando o passo para evitar saltos)
-    float maxDt = 0.05f; // redundante, mas protege contra spikes
-    float usedDt = (dt>maxDt?maxDt:dt);
-    float oldX=camX, oldY=camY, oldZ=camZ; 
-    float newX=camX+mvx*speed*usedDt, newY=camY+mvy*speed*usedDt, newZ=camZ+mvz*speed*usedDt;
-
-    // Aplicar colisão
-    collideAndMove(newX,newY,newZ,oldX,oldY,oldZ); 
-
-    // Atualizar posição da câmera
-    camX=newX; camY=newY; camZ=newZ; 
+    // Colisão e atualização
+    collideAndMove(newX,newY,newZ,oldX,oldY,oldZ);
+    camX = newX; camY = newY; camZ = newZ;
 
     glutPostRedisplay();
 }
@@ -955,6 +1112,7 @@ int main(int argc,char** argv){
     glutSpecialFunc(spDownCb);
     glutSpecialUpFunc(spUpCb);
     glutPassiveMotionFunc(passiveMotion);
+    glutMouseFunc(mouseCb);
 
     lastMs=glutGet(GLUT_ELAPSED_TIME); captureMouseCenter();
 

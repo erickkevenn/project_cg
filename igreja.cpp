@@ -22,13 +22,14 @@ const float EYE_H     =  1.7f;
 
 const float RADIUS    = 0.3f;
 
-float camX = 0.0f, camY = EYE_H, camZ = 30.0f;
+float camX = 0.0f, camY = EYE_H, camZ = 27.2f;
 float yawDeg = 0.0f, pitchDeg = 0.0f;
 bool keyDown[256]{}, spDown[256]{};
 bool flashlightOn = false, mouseCaptured = true, flyingMode = false, doorOpen = false;
 float baseSpeed = 4.0f; int lastMs = 0;
 bool shiftHeld = false;
 
+static float speedMul = 1.0f; // suavização de corrida
 static inline float deg2rad(float d){ return d*3.1415926535f/180.0f; }
 static inline void  clampPitch(){ pitchDeg = std::max(-89.0f, std::min(89.0f, pitchDeg)); }
 
@@ -342,10 +343,10 @@ void drawAmbaoSymbol(float xCenter, float yCenter, float zFrontFace){
     drawBox(xCenter, yCenter-0.33f, zSym, 0.26f, 0.03f, 0.02f, K,K,K);
 
     // Cálice (taça + haste)
-    drawBox(xCenter, yCenter-0.10f, zSym, 0.15f, 0.10f, 0.02f, K,K,K);   // “taça”
+    drawBox(xCenter, yCenter-0.10f, zSym, 0.15f, 0.10f, 0.02f, K,K,K);   // "taça"
     drawBox(xCenter, yCenter-0.22f, zSym, 0.03f, 0.12f, 0.02f, K,K,K);   // haste
 
-    // “Chamas” laterais (aproximação com retângulos inclinados)
+    // "Chamas" laterais (aproximação com retângulos inclinados)
     glPushMatrix(); glTranslatef(xCenter-0.12f, yCenter-0.08f, zSym); glRotatef(20,0,0,1);
     drawBox(0,0,0, 0.05f, 0.12f, 0.02f, K,K,K); glPopMatrix();
     glPushMatrix(); glTranslatef(xCenter+0.12f, yCenter-0.08f, zSym); glRotatef(-20,0,0,1);
@@ -362,8 +363,8 @@ void drawAmbao(){
     float marbleR=0.95f, marbleG=0.95f, marbleB=0.97f;
     
     // Posição do ambão: mais para o lado e virado para as cadeiras
-    float ambaoX = -3.0f;  // Movido mais para o lado
-    float ambaoZ = -20.0f; // posição fixa
+    float ambaoX = -2.5f;  // Movido mais para o lado
+    float ambaoZ = -18.0f; // Movido mais para frente (em direção às cadeiras)
     
     // Base do ambão (degrau) - menor
     drawBox(ambaoX, FLOOR_Y+0.15f, ambaoZ, 0.8f, 0.3f, 0.6f, woodR, woodG, woodB);
@@ -444,7 +445,7 @@ void drawDoor(){
 void drawPlasticChairWhite(){
     // tons off-white para não estourar na luz
     const float body = 0.93f;   // assento/encosto
-    const float frame= 0.88f;   // “tubos”/pernas
+    const float frame= 0.88f;   // "tubos"/pernas
 
     // assento
     drawBox(0.0f, 0.44f, 0.0f,  0.48f, 0.05f, 0.46f,  body, body, body);
@@ -617,47 +618,6 @@ void drawChurchOpaque(){
     //drawSphere(20.0f, FLOOR_Y+5.5f, 30.0f, 0.2f, 12, 12, 1.0f, 1.0f, 0.9f);
 }
 
-// Helper: desenha porta dupla no ponto (cx,cz) rotacionada 'yawDeg' em Y
-static void drawDoorAt(float cx, float cz, float yawDeg){
-	float doorR=0.6f, doorG=0.4f, doorB=0.2f;
-	float handleR=0.9f, handleG=0.7f, handleB=0.2f;
-
-	glPushMatrix();
-	glTranslatef(cx, 0.0f, cz);
-	glRotatef(yawDeg, 0,1,0);
-
-	if (doorOpen) {
-		// esquerda aberta
-		glPushMatrix();
-		glTranslatef(-1.0f, 0.0f, 0.0f);
-		glRotatef(90, 0, 1, 0);
-		glTranslatef(1.0f, 0.0f, 0.0f);
-		drawBox(-1.0f, 1.5f, 0.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
-		glPopMatrix();
-
-		// direita aberta
-		glPushMatrix();
-		glTranslatef(1.0f, 0.0f, 0.0f);
-		glRotatef(-90, 0, 1, 0);
-		glTranslatef(-1.0f, 0.0f, 0.0f);
-		drawBox(1.0f, 1.5f, 0.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
-		glPopMatrix();
-
-		// maçanetas
-		drawBox(-1.8f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-		drawBox( 1.8f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-	} else {
-		// duas folhas fechadas
-		drawBox(-1.0f, 1.5f, 0.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
-		drawBox( 1.0f, 1.5f, 0.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
-
-		// maçanetas
-		drawBox(-0.2f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-		drawBox( 0.2f, 1.5f, 0.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-	}
-	glPopMatrix();
-}
-
 void drawChurchWindows(){
     // desenha os vitrais nas duas faces da parede (interno e externo)
     const float inset = 0.18f;      // distância da janela em relação à superfície da parede
@@ -679,7 +639,7 @@ void drawChurchWindows(){
     glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthMask(GL_FALSE); // não grava no depth para não “cortar” transparências
+    glDepthMask(GL_FALSE); // não grava no depth para não "cortar" transparências
 
     // Mesmas posições de janelas que você já usa
     const float Y = 2.0f;
@@ -700,7 +660,7 @@ void setupLights(){
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
-    // Ambiente baixo (evita “lavado”)
+    // Ambiente baixo (evita "lavado")
     GLfloat globalAmb[4] = {0.14f,0.14f,0.14f,1.0f};
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmb);
 
@@ -714,7 +674,7 @@ void setupLights(){
     glLightfv(GL_LIGHT0, GL_AMBIENT,  amb0);
     glLightfv(GL_LIGHT0, GL_SPECULAR, spec0);
 
-    // “Spot” suave no altar
+    // "Spot" suave no altar
     glEnable(GL_LIGHT2);
     GLfloat pos2[4] = { 0.0f, 4.0f, -22.0f, 1.0f };
     GLfloat dif2[4] = { 0.55f,0.55f,0.55f,1.0f };
@@ -800,19 +760,16 @@ bool checkChairCollision(float x, float z){
 // Função para verificar colisão com objetos do altar
 bool checkAltarCollision(float x, float z){
     // Altar principal
-    float zAltar = -22.5f;
     if (x >= -2.5f && x <= 2.5f && z >= -23.5f && z <= -21.5f) return true;
     
     // Ambão
-    float ambaoZ = -20.0f;
-    if (x >= -3.40f && x <= -2.60f && z >= -20.30f && z <= -19.70f) return true;
+    if (x >= -2.9f && x <= -2.1f && z >= -18.3f && z <= -17.7f) return true;
     
     // Estátuas laterais
     if (x >= -4.9f && x <= -4.1f && z >= -20.2f && z <= -19.8f) return true; // esquerda
     if (x >= 4.1f && x <= 4.9f && z >= -20.2f && z <= -19.8f) return true;  // direita
     
     // Cruz processional
-    float crossZ = -21.0f;
     if (x >= 2.35f && x <= 2.65f && z >= -21.15f && z <= -20.85f) return true;
     
     return false;
@@ -827,25 +784,45 @@ void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
     // Colisão com paredes
     float halfW=CH_WIDTH*0.5f, backZ=-25, frontZ=15;
     float tx=nx, ty=ny, tz=nz;
-
+    
     // Manter altura do chão
     if (ty < EYE_H) ty = EYE_H;
-
+    
     // Colisão com paredes laterais
     if (oz>backZ-RADIUS && oz<frontZ+RADIUS){
         if (tx<-halfW+RADIUS) tx=-halfW+RADIUS;
         if (tx> halfW-RADIUS) tx= halfW-RADIUS;
     }
-
+    
     // Colisão com paredes frontal e traseira
     if (tx > -halfW-RADIUS && tx < halfW+RADIUS){
-        if (tz<backZ+RADIUS) tz=backZ+RADIUS;
-        if (tz>frontZ-RADIUS){ 
-            // Se a porta estiver fechada, não pode passar
-            if (!doorOpen && std::fabs(tx)>DOOR_HALF) tz=frontZ-RADIUS; 
+        // parede de trás
+        if (tz < backZ + RADIUS) tz = backZ + RADIUS;
+
+        // parede da frente (z=frontZ)
+        // Porta fechada: bloqueia tudo; aberta: bloqueia laterais (|x| > DOOR_HALF)
+        bool bloqueia = !doorOpen || (std::fabs(tx) > DOOR_HALF);
+
+        if (bloqueia) {
+            // Só empurra se tentar cruzar o plano da parede a partir do lado onde está
+            const float eps = 0.0005f;
+            bool estavaFora   = (oz >= frontZ + RADIUS - eps);
+            bool estavaDentro = (oz <= frontZ - RADIUS + eps);
+
+            if (estavaFora) {
+                // Fora: só clampa se tentou entrar (tz < frontZ + RADIUS)
+                if (tz < frontZ + RADIUS) tz = frontZ + RADIUS;
+            } else if (estavaDentro) {
+                // Dentro: só clampa se tentou sair (tz > frontZ - RADIUS)
+                if (tz > frontZ - RADIUS) tz = frontZ - RADIUS;
+            } else {
+                // Se começou exatamente na "faixa" da parede, decide pelo sentido do passo
+                if (tz < frontZ) tz = frontZ - RADIUS;
+                else             tz = frontZ + RADIUS;
+            }
         }
     }
-
+    
     // Verificar colisão com cadeiras/objetos e tentar "deslizar" nos eixos
     if (checkChairCollision(tx, tz) || checkAltarCollision(tx, tz)) {
         // Tenta mover só em X
@@ -863,11 +840,8 @@ void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
             }
         }
     }
-
-    // Atualiza os valores passados por referência
-    nx = tx;
-    ny = ty;
-    nz = tz;
+    
+    nx=tx; ny=ty; nz=tz;
 }
 
 //================== OVERLAY 2D (MIRA) ==================
@@ -974,8 +948,13 @@ void idle(){
     float mvx=0, mvy=0, mvz=0;
     
     // Verificar se alguma tecla está pressionada antes de calcular movimento
-    bool anyKeyPressed = false;
-    
+    bool anyKeyPressed =
+        keyDown['w']||keyDown['W']||keyDown['s']||keyDown['S']||
+        keyDown['a']||keyDown['A']||keyDown['d']||keyDown['D']||
+        (flyingMode && (keyDown[' ']||keyDown['c']||keyDown['C']));
+
+    glutPostRedisplay(); // redesenha sempre
+
     // Movimento horizontal
     if(keyDown['w']||keyDown['W']){ mvx+=fx; mvz+=fz; anyKeyPressed = true; }
     if(keyDown['s']||keyDown['S']){ mvx-=fx; mvz-=fz; anyKeyPressed = true; }
@@ -988,31 +967,38 @@ void idle(){
         if(keyDown['c']||keyDown['C']) { mvy -= 1.0f; anyKeyPressed = true; }  // C para descer
     }
     
-    // Se nenhuma tecla está pressionada, nada a fazer
-    anyKeyPressed = keyDown['w']||keyDown['W']||keyDown['s']||keyDown['S']||
-                         keyDown['a']||keyDown['A']||keyDown['d']||keyDown['D']||
-                         (flyingMode && (keyDown[' ']||keyDown['c']||keyDown['C']));
-    if (!anyKeyPressed){
+    // Normalizar movimento horizontal
+    float len = std::sqrt(mvx*mvx + mvz*mvz);
+    if (len > 0.0001f) { mvx/=len; mvz/=len; }
+
+    // Detectar Shift a partir das teclas especiais (estável no idle)
+    bool shiftHeld = (spDown[GLUT_KEY_SHIFT_L] || spDown[GLUT_KEY_SHIFT_R]);
+
+    // Suavizar transição do multiplicador (aceleração/frenagem suave)
+    float targetMul = shiftHeld ? 1.8f : 1.0f;
+    // fator ~exp decay para suavizar independente de FPS
+    float k = 1.0f - std::exp(-dt * 12.0f);
+    speedMul += (targetMul - speedMul) * k;
+
+    float speed = baseSpeed * speedMul;
+
+    if (!anyKeyPressed) {
+        // sem movimento: não atualiza posição (mas já chamamos redisplay)
         return;
     }
 
-    // Normalizar movimento horizontal
-    float len=std::sqrt(mvx*mvx+mvz*mvz); 
-    if(len>0.0001f){ mvx/=len; mvz/=len; }
+    // Calcular nova posição
+    float maxDt = 0.05f;
+    float usedDt = (dt > maxDt ? maxDt : dt);
+    float oldX = camX, oldY = camY, oldZ = camZ;
+    float newX = camX + mvx*speed*usedDt;
+    float newY = camY + mvy*speed*usedDt;
+    float newZ = camZ + mvz*speed*usedDt;
 
-    // Calcular velocidade
-    float speed=baseSpeed; 
-    if(shiftHeld) speed*=1.8f;
+    // Colisão e atualização
+    collideAndMove(newX,newY,newZ,oldX,oldY,oldZ);
+    camX = newX; camY = newY; camZ = newZ;
 
-    // Calcular nova posição (limitando o passo para evitar saltos)
-    float maxDt = 0.05f; // redundante, mas protege contra spikes
-    float usedDt = (dt>maxDt?maxDt:dt);
-    float oldX=camX, oldY=camY, oldZ=camZ; 
-    float newX=camX+mvx*speed*usedDt, newY=camY+mvy*speed*usedDt, newZ=camZ+mvz*speed*usedDt;
-
-    // Aplicar colisão
-    collideAndMove(newX,newY,newZ,oldX,oldY,oldZ); 
-    camX=newX; camY=newY; camZ=newZ; 
     glutPostRedisplay();
 }
 

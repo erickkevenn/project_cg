@@ -278,35 +278,36 @@ void drawRealisticStatues(){
     float blueR=0.2f, blueG=0.4f, blueB=0.8f;
     float whiteR=0.95f, whiteG=0.95f, whiteB=0.98f;
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
+
+    const float DY = 2.20f;
     
-    // Prateleira branca fixada na parede
-    //drawBox(-4.5f, FLOOR_Y+1.2f, -20.0f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
+    // Prateleira branca fixada na parede (mais em baixo)
+    drawBox(-2.5f, FLOOR_Y+0.8f + DY, -24.8f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
     
     // Corpo (vestido azul)
-    drawBox(-4.5f, FLOOR_Y+1.0f, -20.0f, 0.3f, 1.2f, 0.2f, blueR, blueG, blueB);
+    drawBox(-2.5f, FLOOR_Y+1.4f + DY, -24.8f, 0.3f, 1.2f, 0.2f, blueR, blueG, blueB);
     
-    // Cabeça
-    drawSphere(-4.5f, FLOOR_Y+1.8f, -20.0f, 0.12f, 12, 12, skinR, skinG, skinB);
+    // Cabeça - mais alta
+    drawSphere(-2.5f, FLOOR_Y+2.2f + DY, -24.8f, 0.12f, 12, 12, skinR, skinG, skinB);
     
     // Manto branco
-    drawBox(-4.5f, FLOOR_Y+1.3f, -20.0f, 0.4f, 0.8f, 0.15f, whiteR, whiteG, whiteB);
+    drawBox(-2.5f, FLOOR_Y+1.7f + DY, -24.8f, 0.4f, 0.8f, 0.15f, whiteR, whiteG, whiteB);
     
     // Estátua de São José (direita) - em prateleira branca
     float brownR=0.6f, brownG=0.4f, brownB=0.2f;
     
     // Prateleira branca fixada na parede
-    //drawBox(4.5f, FLOOR_Y+1.2f, -20.0f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
+    drawBox( 2.5f, FLOOR_Y+0.8f + DY, -24.8f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
     
-    // Corpo (túnica marrom)
-    drawBox(4.5f, FLOOR_Y+1.0f, -20.0f, 0.3f, 1.2f, 0.2f, brownR, brownG, brownB);
+    // Corpo (túnica marrom) 
+    drawBox( 2.5f, FLOOR_Y+1.4f + DY, -24.8f, 0.3f, 1.2f, 0.2f, brownR, brownG, brownB);
     
-    // Cabeça
-    drawSphere(4.5f, FLOOR_Y+1.8f, -20.0f, 0.12f, 12, 12, skinR, skinG, skinB);
+    // Cabeça - mais alta
+    drawSphere( 2.5f, FLOOR_Y+2.2f + DY, -24.8f, 0.12f, 12, 12, skinR, skinG, skinB);
     
-    // Cajado
-    drawBox(4.7f, FLOOR_Y+1.2f, -20.0f, 0.03f, 1.0f, 0.03f, 0.4f, 0.3f, 0.2f);
+    // Cajado - acompanha a subida
+    drawBox( 2.7f, FLOOR_Y+1.6f + DY, -24.8f, 0.03f, 1.0f, 0.03f, 0.4f, 0.3f, 0.2f);
 }
-
 
 void drawProcessionalCross(){
     float goldR=0.9f, goldG=0.7f, goldB=0.2f;

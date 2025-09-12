@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <algorithm>
 
-static const char* TITLE = "Igreja Moderna 3D - V=Voar, F=Lanterna, R=Reset, M=Mouse, E=Porta";
+static const char* TITLE = "Igreja - V=Voar, F=Lanterna, R=Reset, M=Mouse, E=Porta";
 int   WIN_W = 1280, WIN_H = 720;
 
 const float CH_WIDTH  = 12.0f;  
@@ -258,7 +258,7 @@ void drawRealisticCrucifix(){
     
     // Cristo (corpo realista com tons de pele)
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
-    drawBox(0.0f, 4.5f, -24.75f, 0.15f, 0.8f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.2f, -24.75f, 0.15f, 1.5f, 0.05f, skinR, skinG, skinB);
     drawBox(0.0f, 4.7f, -24.75f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
     
     // Braços (esquerdo e direito)

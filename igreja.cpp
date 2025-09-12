@@ -1,19 +1,14 @@
-// arquivo: igreja_melhorada.cpp
-// g++ igreja_melhorada.cpp -o igreja.exe -lfreeglut -lopengl32 -lglu32
-// Igreja moderna com fachada em V, entrada realista e objetos detalhados
-
 #include <GL/freeglut.h>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
 
-//================== CONFIG ==================
-static const char* TITLE = "Igreja Moderna 3D — V=Voar, F=Lanterna, R=Reset, M=Mouse, E=Porta";
+static const char* TITLE = "Igreja Moderna 3D - V=Voar, F=Lanterna, R=Reset, M=Mouse, E=Porta";
 int   WIN_W = 1280, WIN_H = 720;
 
-const float CH_WIDTH  = 12.0f;   // x interno -6..+6
-const float CH_DEPTH  = 40.0f;   // z interno -25..+15
+const float CH_WIDTH  = 12.0f;  
+const float CH_DEPTH  = 40.0f;   
 const float CH_HEIGHT =  6.0f;
 const float DOOR_HALF =  2.0f;
 const float WALL_T    =  0.2f;
@@ -263,14 +258,15 @@ void drawRealisticCrucifix(){
     
     // Cristo (corpo realista com tons de pele)
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
-    drawBox(0.0f, 4.2f, -24.75f, 0.15f, 0.8f, 0.05f, skinR, skinG, skinB);
-    drawBox(0.0f, 4.6f, -24.75f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.5f, -24.75f, 0.15f, 0.8f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.7f, -24.75f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
     
-    // Braços
-    drawBox(-0.3f, 4.4f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
+    // Braços (esquerdo e direito)
+    drawBox(-0.45f, 4.5f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
+    drawBox( 0.45f, 4.5f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
     
     // Pano branco cobrindo a cintura
-    drawBox(0.0f, 3.9f, -24.7f, 0.25f, 0.3f, 0.03f, 1.0f, 1.0f, 1.0f);
+    drawBox(0.0f, 4.1f, -24.7f, 0.25f, 0.3f, 0.03f, 1.0f, 1.0f, 1.0f);
 }
 
 void drawRealisticStatues(){

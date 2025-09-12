@@ -19,7 +19,7 @@ Este é um projeto desenvolvido para a disciplina de **Computação Gráfica** d
 
 ### 🪑 Mobiliário e Objetos
 - **Altar**: Base em mármore e degraus
-- **Ambão (Púlpito)**: Estrutura de madeira posicionada à frente
+- **Ambão**: Estrutura de madeira posicionada à frente
 - **Crucifixo**: Madeira escura na parede do fundo
 - **Estátuas**: Virgem Maria e São José
 - **Cadeiras**: Layout organizado voltado ao altar
@@ -31,9 +31,9 @@ Este é um projeto desenvolvido para a disciplina de **Computação Gráfica** d
 - **Gramado**: Área verde ao redor
 
 ### 🚪 Interatividade
-- **Porta**: Abre/fecha com a tecla E
+- **Porta**: Abre/fecha com a tecla E / botão visual
 - **Sistema de Colisão**: Colisão com paredes, cadeiras e objetos principais
-- **Modo Voo**: Alterna com V (sem colisão)
+- **Modo Voo**: Alterna com V 
 - **Lanterna**: Tecla F
 
 ## Controles
@@ -57,7 +57,6 @@ Este é um projeto desenvolvido para a disciplina de **Computação Gráfica** d
 - **C++**: Linguagem de programação principal
 - **OpenGL**: API gráfica para renderização 3D
 - **GLUT (FreeGLUT)**: Biblioteca para gerenciamento de janelas e entrada
-- **GLU**: Utilitários OpenGL para operações matemáticas
 - **GCC/G++**: Compilador C++
 
 ## Estrutura do Projeto
@@ -65,17 +64,12 @@ Este é um projeto desenvolvido para a disciplina de **Computação Gráfica** d
 ```
 projetocg/
 ├── igreja.cpp          # Código fonte principal
-├── igreja_final.exe    # Executável compilado
-├── igreja_glfw.cpp     # Versão para Linux (GLFW)
-├── Makefile            # Script de compilação automática
-├── CMakeLists.txt      # Configuração CMake
-├── run.sh              # Script de execução (Linux)
 └── README.md           # Este arquivo
 ```
 
 ## Compilação e Execução
 
-### Windows (GLUT)
+### Windows 
 
 **Pré-requisitos:**
 - MinGW ou Visual Studio
@@ -91,38 +85,6 @@ g++ igreja.cpp -o igreja_final.exe -lfreeglut -lopengl32 -lglu32
 ```bash
 ./igreja_final.exe
 ```
-
-### Linux (GLFW)
-
-**Pré-requisitos:**
-```bash
-sudo apt-get install libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev
-```
-
-**Compilação:**
-```bash
-g++ igreja_glfw.cpp -o igreja_glfw -lglfw -lGL -lGLU
-```
-
-**Execução:**
-```bash
-./igreja_glfw
-```
-
-### Compilação Automática
-
-**Usando Makefile:**
-```bash
-make windows    # Para Windows
-make linux      # Para Linux
-make all        # Detecta automaticamente o SO
-```
-
-**Usando CMake (Linux):**
-```bash
-./run.sh
-```
-
 ## Aspectos Técnicos
 
 ### Renderização
@@ -148,65 +110,17 @@ make all        # Detecta automaticamente o SO
 
 ## Funcionalidades Implementadas
 
-### ✅ Completas
-- [x] Estrutura da igreja (paredes, teto, piso)
-- [x] Câmera em primeira pessoa
-- [x] Iluminação
-- [x] Objetos principais (altar, ambão, cruz, estátuas)
-- [x] Ambiente externo (caminho + gramado)
-- [x] Porta interativa
-- [x] Sistema de colisão (paredes, cadeiras e altar)
-- [x] Modo voo
-- [x] Lanterna do jogador
 
-### 🔄 Melhorias Futuras
-- [ ] Animações suaves para a porta
-- [ ] Som ambiente
-- [ ] Texturas mais detalhadas
-- [ ] Sistema de partículas para velas
-- [ ] Sombras dinâmicas
-- [ ] Reflexões em superfícies
+- Estrutura da igreja (paredes, teto, piso)
+- Câmera em primeira pessoa
+- Iluminação
+- Objetos principais (altar, ambão, cruz, estátuas)
+- Ambiente externo (caminho + gramado)
+- Porta interativa
+- Sistema de colisão (paredes, cadeiras e altar)
+- Modo voo
+- Lanterna do jogador
 
-## Desenvolvimento
 
-### Autores
-- Projeto desenvolvido para a disciplina de Computação Gráfica - UFAL
 
-### Versão
-- **v1.0**: Versão inicial
-- **v1.1**: Objetos principais e ambiente externo
-- **v1.2**: Porta interativa
-- **v1.3**: Sistema de colisão refinado (paredes, cadeiras e altar)
 
-### Licença
-Este projeto é desenvolvido para fins educacionais na UFAL.
-
-## Comandos Úteis do Makefile
-
-```bash
-make help        # Mostra ajuda
-make clean       # Limpa arquivos compilados
-make windows     # Compila para Windows
-make linux       # Compila para Linux
-make all         # Compila automaticamente
-```
-
-## Solução de Problemas
-
-### Erro de Compilação
-- Verifique se todas as bibliotecas estão instaladas
-- No Windows, certifique-se de que o FreeGLUT está no PATH
-- No Linux, instale as dependências com apt-get
-
-### Problemas de Renderização
-- Verifique se o driver de vídeo suporta OpenGL
-- Tente executar com diferentes configurações de resolução
-
-### Controles Não Funcionam
-- Pressione M para capturar o mouse
-- Verifique se a janela está em foco
-- Use R para resetar a posição
-
----
-
-**Desenvolvido para a disciplina de Computação Gráfica - UFAL**

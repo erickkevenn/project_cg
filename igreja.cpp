@@ -3,8 +3,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
+#include <vector>
 
-static const char* TITLE = "Igreja Tabuleiro dos Martins ";
+static const char* TITLE = "Igreja - Tabuleiro dos Martins ";
 int   WIN_W = 1280, WIN_H = 720;
 
 const float CH_WIDTH  = 12.0f;  
@@ -27,6 +28,114 @@ bool shiftHeld = false;
 static float speedMul = 1.0f; // suavização de corrida
 static inline float deg2rad(float d){ return d*3.1415926535f/180.0f; }
 static inline void  clampPitch(){ pitchDeg = std::max(-89.0f, std::min(89.0f, pitchDeg)); }
+
+//================== TEXTURAS (PROCEDURAIS) ==================
+GLuint TEX_FLOOR = 0, TEX_GRASS = 0, TEX_MARBLE = 0, TEX_WOOD = 0, TEX_TILE = 0, TEX_PLASTER = 0;
+
+static void createTextureRGBA(GLuint &texId, int w, int h, const std::vector<unsigned char>& data){
+	glGenTextures(1, &texId);
+	glBindTexture(GL_TEXTURE_2D, texId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+}
+
+static std::vector<unsigned char> genChecker(int w,int h,int step,
+	unsigned char r1,unsigned char g1,unsigned char b1,
+	unsigned char r2,unsigned char g2,unsigned char b2){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		int c = ((x/step) + (y/step)) & 1;
+		unsigned char r = c? r1: r2;
+		unsigned char g = c? g1: g2;
+		unsigned char b = c? b1: b2;
+		int i=(y*w+x)*4; img[i]=r; img[i+1]=g; img[i+2]=b; img[i+3]=255;
+	}}
+	return img;
+}
+
+static std::vector<unsigned char> genNoiseMarble(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u = x/(float)w, v = y/(float)h;
+		float t = std::sin((u*12.0f + v*1.5f) * 3.14159265f + std::sin(u*20.0f)*0.5f);
+		float m = 0.7f + 0.3f*t; // variação sutil
+		unsigned char c = (unsigned char)(std::max(0.0f, std::min(1.0f, m)) * 255);
+		int i=(y*w+x)*4; img[i]=c; img[i+1]=c; img[i+2]=c+10>255?255:c+10; img[i+3]=255;
+	}}
+	return img;
+}
+
+static std::vector<unsigned char> genWood(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u = x/(float)w; float v = y/(float)h;
+		float ring = std::sin((u*8.0f + v*0.2f)*6.28318f) * 0.5f + 0.5f;
+		float baseR=0.55f, baseG=0.38f, baseB=0.22f;
+		float dark = 0.75f + 0.25f*ring;
+		unsigned char r=(unsigned char)(std::min(1.0f, baseR*dark)*255);
+		unsigned char g=(unsigned char)(std::min(1.0f, baseG*dark)*255);
+		unsigned char b=(unsigned char)(std::min(1.0f, baseB*dark)*255);
+		int i=(y*w+x)*4; img[i]=r; img[i+1]=g; img[i+2]=b; img[i+3]=255;
+	}}
+	return img;
+}
+
+static std::vector<unsigned char> genGrass(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u=x/(float)w, v=y/(float)h;
+		float n = (std::sin(u*50.0f)+std::cos(v*35.0f))*0.5f;
+		float g = 0.70f + 0.25f*(n*0.5f+0.5f);
+		unsigned char r=(unsigned char)(g*0.6f*255);
+		unsigned char gg=(unsigned char)(g*255);
+		unsigned char b=(unsigned char)(g*0.6f*255);
+		int i=(y*w+x)*4; img[i]=r; img[i+1]=gg; img[i+2]=b; img[i+3]=255;
+	}}
+	return img;
+}
+
+static std::vector<unsigned char> genPlaster(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u=x/(float)w, v=y/(float)h;
+		float noise = (std::sin(u*90.0f)+std::cos(v*75.0f))*0.03f;
+		float c = 0.86f + noise;
+		unsigned char cc=(unsigned char)(std::max(0.0f,std::min(1.0f,c))*255);
+		int i=(y*w+x)*4; img[i]=cc; img[i+1]=cc; img[i+2]=cc; img[i+3]=255;
+	}}
+	return img;
+}
+
+void initTextures(){
+	const int W=256,H=256;
+	createTextureRGBA(TEX_TILE,   W,H, genChecker(W,H,32, 210,210,215, 160,160,165));
+	createTextureRGBA(TEX_FLOOR,  W,H, genChecker(W,H,24, 200,200,205, 170,170,175));
+	createTextureRGBA(TEX_GRASS,  W,H, genGrass(W,H));
+	createTextureRGBA(TEX_MARBLE, W,H, genNoiseMarble(W,H));
+	createTextureRGBA(TEX_WOOD,   W,H, genWood(W,H));
+	createTextureRGBA(TEX_PLASTER,W,H, genPlaster(W,H));
+}
+
+// Quad com repetição de UV
+void drawTexturedQuad(float x0,float y0,float z0, float x1,float y1,float z1,
+	float x2,float y2,float z2, float x3,float y3,float z3,
+	float uRepeat, float vRepeat){
+	glBegin(GL_QUADS);
+		// normal aproximada por cruz do triângulo 0-1-2
+		float ux=x1-x0, uy=y1-y0, uz=z1-z0;
+		float vx=x2-x0, vy=y2-y0, vz=z2-z0;
+		float nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+		float len = std::sqrt(nx*nx+ny*ny+nz*nz); if(len>0){ nx/=len; ny/=len; nz/=len; }
+		glNormal3f(nx,ny,nz);
+		glTexCoord2f(0,0); glVertex3f(x0,y0,z0);
+		glTexCoord2f(uRepeat,0); glVertex3f(x1,y1,z1);
+		glTexCoord2f(uRepeat,vRepeat); glVertex3f(x2,y2,z2);
+		glTexCoord2f(0,vRepeat); glVertex3f(x3,y3,z3);
+	glEnd();
+}
 
 void getLookVectors(float& fx,float& fy,float& fz,float& rx,float& rz){
     float yaw = deg2rad(yawDeg), pitch = deg2rad(pitchDeg);
@@ -473,16 +582,47 @@ void drawFrontPath(){
 
 //================== IGREJA PRINCIPAL ==================
 void drawChurchOpaque(){
-    float wallR=0.80f, wallG=0.74f, wallB=0.68f;  
-    float ceilR=0.92f, ceilG=0.92f, ceilB=0.94f;  
-    float floorR=0.78f, floorG=0.77f, floorB=0.75f; 
+	float wallR=0.80f, wallG=0.74f, wallB=0.68f;  
+	float ceilR=0.92f, ceilG=0.92f, ceilB=0.94f;  
 
-    drawBox(0.0f, FLOOR_Y-0.05f, -5.0f, CH_WIDTH, 0.1f, CH_DEPTH, floorR,floorG,floorB);
-    drawBox(0.0f, CH_HEIGHT, -5.0f,   CH_WIDTH, 0.1f, CH_DEPTH,  ceilR,ceilG,ceilB);
+	// Piso texturizado
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, TEX_FLOOR);
+	drawTexturedQuad(
+		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f - CH_DEPTH,
+		 CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f - CH_DEPTH,
+		 CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f,
+		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f,
+		6.0f, CH_DEPTH*0.25f);
 
-    drawBox(-CH_WIDTH*0.5f, CH_HEIGHT*0.5f, -5.0f, WALL_T, CH_HEIGHT, CH_DEPTH, wallR,wallG,wallB);
-    drawBox( CH_WIDTH*0.5f, CH_HEIGHT*0.5f, -5.0f, WALL_T, CH_HEIGHT, CH_DEPTH, wallR,wallG,wallB);
-    drawBox(0.0f, CH_HEIGHT*0.5f, -25.0f,   CH_WIDTH, CH_HEIGHT, WALL_T, wallR,wallG,wallB);
+	// Teto
+	glDisable(GL_TEXTURE_2D);
+	drawBox(0.0f, CH_HEIGHT, -5.0f,   CH_WIDTH, 0.1f, CH_DEPTH,  ceilR,ceilG,ceilB);
+
+	// Paredes laterais e fundo (reboco)
+	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_PLASTER);
+	// Parede esquerda
+	drawTexturedQuad(
+		-CH_WIDTH*0.5f, 0.0f, 15.0f - CH_DEPTH,
+		-CH_WIDTH*0.5f, CH_HEIGHT, 15.0f - CH_DEPTH,
+		-CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
+		-CH_WIDTH*0.5f, 0.0f, 15.0f,
+		 CH_DEPTH*0.25f, CH_HEIGHT*0.25f);
+	// Parede direita
+	drawTexturedQuad(
+		 CH_WIDTH*0.5f, 0.0f, 15.0f - CH_DEPTH,
+		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f - CH_DEPTH,
+		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
+		 CH_WIDTH*0.5f, 0.0f, 15.0f,
+		 CH_DEPTH*0.25f, CH_HEIGHT*0.25f);
+	// Parede do fundo
+	drawTexturedQuad(
+		-CH_WIDTH*0.5f, 0.0f, -25.0f,
+		 CH_WIDTH*0.5f, 0.0f, -25.0f,
+		 CH_WIDTH*0.5f, CH_HEIGHT, -25.0f,
+		-CH_WIDTH*0.5f, CH_HEIGHT, -25.0f,
+		 CH_WIDTH*0.3f, CH_HEIGHT*0.3f);
+	glDisable(GL_TEXTURE_2D);
 
     drawBox(-(CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 15.0f,
             (CH_WIDTH*0.5f-DOOR_HALF), CH_HEIGHT, WALL_T, wallR,wallG,wallB);
@@ -505,10 +645,26 @@ void drawChurchOpaque(){
     drawPhotoStyleEntrance();
     drawDoor();
 
-    drawFrontPath();  
-    drawGarden();
+	// Caminho frontal com textura no topo das lajotas
+	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_TILE);
+	const float pathW = 4.8f; const float pathL = 22.0f; const float z0 = 16.2f;
+	drawTexturedQuad(
+		-pathW*0.5f, FLOOR_Y-0.005f, z0,
+		 pathW*0.5f, FLOOR_Y-0.005f, z0,
+		 pathW*0.5f, FLOOR_Y-0.005f, z0+pathL,
+		-pathW*0.5f, FLOOR_Y-0.005f, z0+pathL,
+		 3.5f, 10.0f);
+	glDisable(GL_TEXTURE_2D);
 
-    drawBox(0.0f, -0.06f, 30.0f, 120.0f, 0.1f, 120.0f, 0.70f,0.88f,0.72f);
+	// Gramado externo texturizado
+	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_GRASS);
+	drawTexturedQuad(
+		-60.0f, -0.06f, -30.0f,
+		 60.0f, -0.06f, -30.0f,
+		 60.0f, -0.06f, 90.0f,
+		-60.0f, -0.06f, 90.0f,
+		 24.0f, 48.0f);
+	glDisable(GL_TEXTURE_2D);
 }
 
 void drawChurchWindows(){
@@ -556,7 +712,7 @@ void setupLights(){
     GLfloat pos0[4]  = { 0.0f, 7.0f, 0.0f, 1.0f };
     GLfloat dif0[4]  = { 0.65f,0.65f,0.65f,1.0f };
     GLfloat amb0[4]  = { 0.05f,0.05f,0.05f,1.0f };
-    GLfloat spec0[4] = { 0.00f,0.00f,0.00f,1.0f };
+    GLfloat spec0[4] = { 0.20f,0.20f,0.20f,1.0f };
     glLightfv(GL_LIGHT0, GL_POSITION, pos0);
     glLightfv(GL_LIGHT0, GL_DIFFUSE,  dif0);
     glLightfv(GL_LIGHT0, GL_AMBIENT,  amb0);
@@ -570,11 +726,32 @@ void setupLights(){
     glLightfv(GL_LIGHT2, GL_DIFFUSE,  dif2);
     glLightfv(GL_LIGHT2, GL_AMBIENT,  amb2);
 
-    GLfloat specMat[4] = {0,0,0,1};
+    // Materiais mais realistas
+    GLfloat specMat[4] = {0.18f,0.18f,0.18f,1};
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specMat);
-    glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, 0.0f);
+    glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, 18.0f);
 
     glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+
+    // Luz direcional suave do "sol" vindo da entrada -> interior
+    glEnable(GL_LIGHT3);
+    GLfloat dirDif[4] = { 0.35f, 0.35f, 0.38f, 1.0f };
+    GLfloat dirAmb[4] = { 0.02f, 0.02f, 0.03f, 1.0f };
+    GLfloat sunDir[4] = { 0.0f, -1.0f, -0.25f, 0.0f }; // direcional
+    glLightfv(GL_LIGHT3, GL_POSITION, sunDir);
+    glLightfv(GL_LIGHT3, GL_DIFFUSE,  dirDif);
+    glLightfv(GL_LIGHT3, GL_AMBIENT,  dirAmb);
+    glLightfv(GL_LIGHT3, GL_SPECULAR, spec0);
+
+    // Luz quente no altar
+    glEnable(GL_LIGHT4);
+    GLfloat pos4[4] = { 0.0f, 5.0f, -23.0f, 1.0f };
+    GLfloat dif4[4] = { 0.85f, 0.70f, 0.55f, 1.0f };
+    GLfloat amb4[4] = { 0.05f, 0.04f, 0.03f, 1.0f };
+    glLightfv(GL_LIGHT4, GL_POSITION, pos4);
+    glLightfv(GL_LIGHT4, GL_DIFFUSE,  dif4);
+    glLightfv(GL_LIGHT4, GL_AMBIENT,  amb4);
+    glLightf (GL_LIGHT4, GL_LINEAR_ATTENUATION, 0.04f);
 }
 
 void updateFlashlight(){
@@ -942,6 +1119,19 @@ void initGL(){
     glShadeModel(GL_SMOOTH);
     glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     setupLights();
+
+	// Fog leve para profundidade atmosférica
+	glEnable(GL_FOG);
+	GLfloat fogColor[4] = {0.85f,0.86f,0.88f,1.0f};
+	glFogfv(GL_FOG_COLOR, fogColor);
+	glFogf(GL_FOG_MODE, GL_EXP2);
+	glFogf(GL_FOG_DENSITY, 0.008f);
+	glHint(GL_FOG_HINT, GL_NICEST);
+
+	// Texturas procedurais
+	glEnable(GL_TEXTURE_2D);
+	initTextures();
+	glDisable(GL_TEXTURE_2D);
 }
 
 int main(int argc,char** argv){

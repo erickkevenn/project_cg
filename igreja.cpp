@@ -25,12 +25,14 @@ bool flashlightOn = false, mouseCaptured = true, flyingMode = false, doorOpen = 
 float baseSpeed = 4.0f; int lastMs = 0;
 bool shiftHeld = false;
 
+// Porta removida: sem animação/som
+
 static float speedMul = 1.0f; // suavização de corrida
 static inline float deg2rad(float d){ return d*3.1415926535f/180.0f; }
 static inline void  clampPitch(){ pitchDeg = std::max(-89.0f, std::min(89.0f, pitchDeg)); }
 
 //================== TEXTURAS (PROCEDURAIS) ==================
-GLuint TEX_FLOOR = 0, TEX_GRASS = 0, TEX_MARBLE = 0, TEX_WOOD = 0, TEX_TILE = 0, TEX_PLASTER = 0;
+GLuint TEX_FLOOR = 0, TEX_GRASS = 0, TEX_MARBLE = 0, TEX_WOOD = 0, TEX_TILE = 0, TEX_PLASTER = 0, TEX_STONE = 0, TEX_REFLECTIVE_TILES = 0, TEX_CROSS = 0;
 
 static void createTextureRGBA(GLuint &texId, int w, int h, const std::vector<unsigned char>& data){
 	glGenTextures(1, &texId);
@@ -60,10 +62,28 @@ static std::vector<unsigned char> genNoiseMarble(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
 		float u = x/(float)w, v = y/(float)h;
-		float t = std::sin((u*12.0f + v*1.5f) * 3.14159265f + std::sin(u*20.0f)*0.5f);
-		float m = 0.7f + 0.3f*t; // variação sutil
-		unsigned char c = (unsigned char)(std::max(0.0f, std::min(1.0f, m)) * 255);
-		int i=(y*w+x)*4; img[i]=c; img[i+1]=c; img[i+2]=c+10>255?255:c+10; img[i+3]=255;
+		
+		// Veios principais do mármore
+		float veins1 = std::sin((u*8.0f + v*2.0f) * 3.14159265f + std::sin(u*15.0f)*0.3f);
+		float veins2 = std::sin((u*6.0f - v*1.8f) * 3.14159265f + std::cos(v*12.0f)*0.4f);
+		float veins3 = std::sin((u*4.0f + v*3.0f) * 3.14159265f + std::sin(u*25.0f + v*8.0f)*0.2f);
+		
+		// Combinação dos veios
+		float combined = (veins1 * 0.5f + veins2 * 0.3f + veins3 * 0.2f);
+		
+		// Base do mármore com variações sutis
+		float base = 0.85f + 0.15f * std::sin(u*30.0f + v*20.0f) * 0.3f;
+		
+		// Aplicar os veios
+		float final = base + combined * 0.25f;
+		final = std::max(0.0f, std::min(1.0f, final));
+		
+		// Cores do mármore (branco com tons azulados/cinzentos)
+		unsigned char r = (unsigned char)(final * 255);
+		unsigned char g = (unsigned char)(final * 0.98f * 255);
+		unsigned char b = (unsigned char)(final * 0.95f * 255);
+		
+		int i=(y*w+x)*4; img[i]=r; img[i+1]=g; img[i+2]=b; img[i+3]=255;
 	}}
 	return img;
 }
@@ -72,13 +92,38 @@ static std::vector<unsigned char> genWood(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
 		float u = x/(float)w; float v = y/(float)h;
-		float ring = std::sin((u*8.0f + v*0.2f)*6.28318f) * 0.5f + 0.5f;
-		float baseR=0.55f, baseG=0.38f, baseB=0.22f;
-		float dark = 0.75f + 0.25f*ring;
-		unsigned char r=(unsigned char)(std::min(1.0f, baseR*dark)*255);
-		unsigned char g=(unsigned char)(std::min(1.0f, baseG*dark)*255);
-		unsigned char b=(unsigned char)(std::min(1.0f, baseB*dark)*255);
-		int i=(y*w+x)*4; img[i]=r; img[i+1]=g; img[i+2]=b; img[i+3]=255;
+		
+		// Anéis de crescimento da árvore
+		float rings = std::sin((u*12.0f + v*0.3f)*6.28318f) * 0.5f + 0.5f;
+		
+		// Grãos da madeira (linhas verticais)
+		float grain = std::sin(v*40.0f + std::sin(u*15.0f)*0.5f) * 0.3f + 0.7f;
+		
+		// Variações naturais da madeira
+		float variation = std::sin(u*25.0f + v*18.0f) * 0.15f + 0.85f;
+		
+		// Combinação dos elementos
+		float pattern = rings * 0.6f + grain * 0.4f;
+		float final = pattern * variation;
+		
+		// Cores base da madeira (mogno)
+		float baseR=0.65f, baseG=0.45f, baseB=0.28f;
+		
+		// Aplicar variações de cor
+		float r = baseR * final;
+		float g = baseG * final;
+		float b = baseB * final;
+		
+		// Adicionar tons mais escuros nos anéis
+		if (rings > 0.7f) {
+			r *= 0.8f; g *= 0.8f; b *= 0.8f;
+		}
+		
+		unsigned char red=(unsigned char)(std::min(1.0f, r)*255);
+		unsigned char green=(unsigned char)(std::min(1.0f, g)*255);
+		unsigned char blue=(unsigned char)(std::min(1.0f, b)*255);
+		
+		int i=(y*w+x)*4; img[i]=red; img[i+1]=green; img[i+2]=blue; img[i+3]=255;
 	}}
 	return img;
 }
@@ -87,12 +132,44 @@ static std::vector<unsigned char> genGrass(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
 		float u=x/(float)w, v=y/(float)h;
-		float n = (std::sin(u*50.0f)+std::cos(v*35.0f))*0.5f;
-		float g = 0.70f + 0.25f*(n*0.5f+0.5f);
-		unsigned char r=(unsigned char)(g*0.6f*255);
-		unsigned char gg=(unsigned char)(g*255);
-		unsigned char b=(unsigned char)(g*0.6f*255);
-		int i=(y*w+x)*4; img[i]=r; img[i+1]=gg; img[i+2]=b; img[i+3]=255;
+		
+		// Padrão de grama com variações
+		float grass1 = (std::sin(u*60.0f)+std::cos(v*45.0f))*0.4f;
+		float grass2 = (std::sin(u*30.0f + v*20.0f))*0.3f;
+		float grass3 = (std::sin(u*90.0f + v*70.0f))*0.2f;
+		
+		// Combinação dos padrões
+		float pattern = grass1 + grass2 + grass3;
+		
+		// Base da grama com variações naturais
+		float base = 0.65f + 0.20f * (pattern * 0.5f + 0.5f);
+		
+		// Adicionar manchas escuras e claras
+		float spots = std::sin(u*25.0f + v*18.0f) * 0.1f;
+		base += spots;
+		
+		// Cores da grama (verde natural)
+		float r = base * 0.4f;   // vermelho baixo
+		float g = base * 0.9f;   // verde alto
+		float b = base * 0.3f;   // azul baixo
+		
+		// Variações de cor para diferentes tons de verde
+		if (pattern > 0.3f) {
+			g *= 1.1f;  // mais verde nas áreas claras
+		} else {
+			r *= 0.8f; g *= 0.8f; b *= 0.8f;  // mais escuro nas áreas escuras
+		}
+		
+		// Garantir que os valores estejam no range correto
+		r = std::max(0.0f, std::min(1.0f, r));
+		g = std::max(0.0f, std::min(1.0f, g));
+		b = std::max(0.0f, std::min(1.0f, b));
+		
+		unsigned char red=(unsigned char)(r*255);
+		unsigned char green=(unsigned char)(g*255);
+		unsigned char blue=(unsigned char)(b*255);
+		
+		int i=(y*w+x)*4; img[i]=red; img[i+1]=green; img[i+2]=blue; img[i+3]=255;
 	}}
 	return img;
 }
@@ -101,10 +178,181 @@ static std::vector<unsigned char> genPlaster(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
 		float u=x/(float)w, v=y/(float)h;
-		float noise = (std::sin(u*90.0f)+std::cos(v*75.0f))*0.03f;
-		float c = 0.86f + noise;
-		unsigned char cc=(unsigned char)(std::max(0.0f,std::min(1.0f,c))*255);
-		int i=(y*w+x)*4; img[i]=cc; img[i+1]=cc; img[i+2]=cc; img[i+3]=255;
+		
+		// Textura irregular do reboco
+		float noise1 = (std::sin(u*120.0f)+std::cos(v*95.0f))*0.08f;
+		float noise2 = (std::sin(u*60.0f + v*40.0f))*0.05f;
+		float noise3 = (std::sin(u*200.0f + v*150.0f))*0.03f;
+		
+		// Variações de cor do reboco (tons de bege/amarelo claro)
+		float base = 0.88f + noise1 + noise2 + noise3;
+		
+		// Adicionar manchas e irregularidades
+		float spots = std::sin(u*80.0f + v*60.0f) * 0.02f;
+		base += spots;
+		
+		// Cores do reboco (bege claro com variações)
+		float r = base * 0.98f;  // ligeiramente mais amarelado
+		float g = base * 0.95f;
+		float b = base * 0.92f;
+		
+		// Garantir que os valores estejam no range correto
+		r = std::max(0.0f, std::min(1.0f, r));
+		g = std::max(0.0f, std::min(1.0f, g));
+		b = std::max(0.0f, std::min(1.0f, b));
+		
+		unsigned char red=(unsigned char)(r*255);
+		unsigned char green=(unsigned char)(g*255);
+		unsigned char blue=(unsigned char)(b*255);
+		
+		int i=(y*w+x)*4; img[i]=red; img[i+1]=green; img[i+2]=blue; img[i+3]=255;
+	}}
+	return img;
+}
+
+static std::vector<unsigned char> genStone(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u=x/(float)w, v=y/(float)h;
+		
+		// Textura de pedra com fissuras e irregularidades
+		float crack1 = std::sin(u*40.0f + v*15.0f) * 0.3f;
+		float crack2 = std::sin(u*25.0f - v*20.0f) * 0.2f;
+		float crack3 = std::sin(u*60.0f + v*35.0f) * 0.15f;
+		
+		// Combinação das fissuras
+		float cracks = crack1 + crack2 + crack3;
+		
+		// Base da pedra com variações
+		float base = 0.75f + 0.15f * std::sin(u*80.0f + v*60.0f);
+		
+		// Aplicar as fissuras (mais escuras)
+		float final = base - std::abs(cracks) * 0.2f;
+		final = std::max(0.0f, std::min(1.0f, final));
+		
+		// Cores da pedra (cinza com tons azulados)
+		float r = final * 0.85f;
+		float g = final * 0.82f;
+		float b = final * 0.78f;
+		
+		// Adicionar variações de cor
+		float colorVar = std::sin(u*30.0f + v*25.0f) * 0.05f;
+		r += colorVar;
+		g += colorVar * 0.8f;
+		b += colorVar * 0.6f;
+		
+		// Garantir que os valores estejam no range correto
+		r = std::max(0.0f, std::min(1.0f, r));
+		g = std::max(0.0f, std::min(1.0f, g));
+		b = std::max(0.0f, std::min(1.0f, b));
+		
+		unsigned char red=(unsigned char)(r*255);
+		unsigned char green=(unsigned char)(g*255);
+		unsigned char blue=(unsigned char)(b*255);
+		
+		int i=(y*w+x)*4; img[i]=red; img[i+1]=green; img[i+2]=blue; img[i+3]=255;
+	}}
+	return img;
+}
+
+static std::vector<unsigned char> genReflectiveTiles(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u=x/(float)w, v=y/(float)h;
+		
+		// Padrão diagonal de azulejos (como na imagem)
+		float tileSize = 0.15f; // tamanho dos azulejos
+		float diagonal = (u + v) / tileSize;
+		float antiDiagonal = (u - v) / tileSize;
+		
+		// Determinar se está em um azulejo ou na junta
+		float tileX = std::fmod(diagonal, 1.0f);
+		float tileY = std::fmod(antiDiagonal, 1.0f);
+		
+		// Juntas dos azulejos (mais escuras)
+		float jointWidth = 0.08f;
+		bool isJoint = (tileX < jointWidth || tileX > (1.0f - jointWidth) || 
+		               tileY < jointWidth || tileY > (1.0f - jointWidth));
+		
+		// Base dos azulejos (cinza claro/off-white)
+		float baseR = 0.92f, baseG = 0.92f, baseB = 0.94f;
+		
+		// Juntas (cinza escuro)
+		float jointR = 0.35f, jointG = 0.35f, jointB = 0.37f;
+		
+		// Variações sutis nos azulejos
+		float variation = std::sin(u*25.0f + v*30.0f) * 0.03f;
+		
+		float r, g, b;
+		if (isJoint) {
+			r = jointR;
+			g = jointG;
+			b = jointB;
+		} else {
+			r = baseR + variation;
+			g = baseG + variation;
+			b = baseB + variation;
+			
+			// Adicionar reflexos sutis
+			float reflection = std::sin(u*40.0f + v*35.0f) * 0.05f;
+			r += reflection;
+			g += reflection;
+			b += reflection;
+		}
+		
+		// Garantir que os valores estejam no range correto
+		r = std::max(0.0f, std::min(1.0f, r));
+		g = std::max(0.0f, std::min(1.0f, g));
+		b = std::max(0.0f, std::min(1.0f, b));
+		
+		unsigned char red=(unsigned char)(r*255);
+		unsigned char green=(unsigned char)(g*255);
+		unsigned char blue=(unsigned char)(b*255);
+		
+		int i=(y*w+x)*4; img[i]=red; img[i+1]=green; img[i+2]=blue; img[i+3]=255;
+	}}
+	return img;
+}
+
+static std::vector<unsigned char> genCrossTexture(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u=x/(float)w, v=y/(float)h;
+		
+		// Base de madeira escura (marrom escuro)
+		float woodR = 0.35f, woodG = 0.25f, woodB = 0.15f;
+		
+		// Grãos da madeira
+		float grain1 = std::sin(v*60.0f + std::sin(u*20.0f)*0.3f) * 0.15f;
+		float grain2 = std::sin(u*40.0f + v*15.0f) * 0.1f;
+		
+		// Variações naturais da madeira
+		float variation = std::sin(u*80.0f + v*60.0f) * 0.08f;
+		
+		// Aplicar grãos e variações
+		float r = woodR + grain1 + grain2 + variation;
+		float g = woodG + grain1*0.8f + grain2*0.6f + variation*0.7f;
+		float b = woodB + grain1*0.6f + grain2*0.4f + variation*0.5f;
+		
+		// Adicionar detalhes dourados nas bordas (como na imagem)
+		float edgeDistance = std::min(std::min(u, 1.0f-u), std::min(v, 1.0f-v));
+		if (edgeDistance < 0.1f) {
+			float goldIntensity = (0.1f - edgeDistance) / 0.1f;
+			r += goldIntensity * 0.3f; // dourado
+			g += goldIntensity * 0.25f;
+			b += goldIntensity * 0.1f;
+		}
+		
+		// Garantir que os valores estejam no range correto
+		r = std::max(0.0f, std::min(1.0f, r));
+		g = std::max(0.0f, std::min(1.0f, g));
+		b = std::max(0.0f, std::min(1.0f, b));
+		
+		unsigned char red=(unsigned char)(r*255);
+		unsigned char green=(unsigned char)(g*255);
+		unsigned char blue=(unsigned char)(b*255);
+		
+		int i=(y*w+x)*4; img[i]=red; img[i+1]=green; img[i+2]=blue; img[i+3]=255;
 	}}
 	return img;
 }
@@ -117,6 +365,9 @@ void initTextures(){
 	createTextureRGBA(TEX_MARBLE, W,H, genNoiseMarble(W,H));
 	createTextureRGBA(TEX_WOOD,   W,H, genWood(W,H));
 	createTextureRGBA(TEX_PLASTER,W,H, genPlaster(W,H));
+	createTextureRGBA(TEX_STONE,  W,H, genStone(W,H));
+	createTextureRGBA(TEX_REFLECTIVE_TILES, W,H, genReflectiveTiles(W,H));
+	createTextureRGBA(TEX_CROSS,  W,H, genCrossTexture(W,H));
 }
 
 // Quad com repetição de UV
@@ -163,25 +414,47 @@ void drawSphere(float x, float y, float z, float radius, int slices, int stacks,
 
 void drawCross(float x,float y,float z,float s=1.0f,float r=0.95f,float g=0.95f,float b=0.97f){
     float th=0.10f*s;
+    
+    // Aplicar textura da cruz
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_CROSS);
+    
+    // Braço vertical da cruz
     drawBox(x,y,z, th,2.0f*s,th, r,g,b);
+    // Braço horizontal da cruz
     drawBox(x,y+0.4f*s,z, 1.2f*s,th,th, r,g,b);
+    
+    glDisable(GL_TEXTURE_2D);
 }
 void drawPortalAFrame(float zCenter, bool addCross, bool groundLevel = false){
     const float fr=0.82f, fg=0.84f, fb=0.86f; // cinza claro
 
+    // Aplicar textura de pedra nos elementos estruturais
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_STONE);
+    
     glPushMatrix(); glTranslatef(-3.9f, 3.6f, zCenter); glRotatef(-17,0,0,1);
     drawBox(0,0,0, 0.45f, 5.2f, 0.50f, fr,fg,fb); glPopMatrix();
     glPushMatrix(); glTranslatef( 3.9f, 3.6f, zCenter); glRotatef( 17,0,0,1);
     drawBox(0,0,0, 0.45f, 5.2f, 0.50f, fr,fg,fb); glPopMatrix();
     drawBox(0.0f, 5.2f, zCenter, 6.6f, 0.45f, 0.50f, fr,fg,fb);
 
+    glDisable(GL_TEXTURE_2D);
+
     if (addCross){
+        // Cruz com textura de mármore
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, TEX_MARBLE);
         drawBox(0.0f, 4.6f, zCenter+0.2f, 1.6f, 1.0f, 0.06f, 0.94f,0.95f,0.97f);
+        glDisable(GL_TEXTURE_2D);
         drawCross(0.0f, 6.2f, zCenter+0.1f, 0.9f, 0.95f,0.95f,0.97f);
     }
     
     if (groundLevel){
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, TEX_STONE);
         drawBox(0.0f, 0.1f, zCenter, 6.6f, 0.2f, 0.50f, fr*0.9f, fg*0.9f, fb*0.9f);
+        glDisable(GL_TEXTURE_2D);
     }
 }
 
@@ -307,15 +580,21 @@ inline void placeStainedOnSide(float xSide,float y,float z){
 
 //================== OBJETOS ==================
 void drawRealisticAltar(){
-    // Degrau de escada preto (base elevada) 
+    // Degrau de escada com textura de pedra
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_STONE);
     drawBox(0.0f, FLOOR_Y+0.15f, -22.5f, 5.0f, 0.3f, 2.0f, 0.1f, 0.1f, 0.1f);
     
     // Segundo degrau menor
     drawBox(0.0f, FLOOR_Y+0.35f, -22.3f, 4.5f, 0.2f, 1.6f, 0.15f, 0.15f, 0.15f);
+    glDisable(GL_TEXTURE_2D);
     
-    // Base do altar (mármore branco com veios cinzentos)
+    // Base do altar com textura de mármore
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_MARBLE);
     float marbleR=0.95f, marbleG=0.95f, marbleB=0.97f;
     drawBox(0.0f, FLOOR_Y+0.75f, -22.5f, 3.8f, 1.1f, 1.4f, marbleR, marbleG, marbleB);
+    glDisable(GL_TEXTURE_2D);
     
     // Painel frontal (mármore preto com Agnus Dei dourado)
     drawBox(0.0f, FLOOR_Y+0.75f, -21.9f, 3.0f, 1.0f, 0.05f, 0.12f, 0.12f, 0.15f);
@@ -332,14 +611,20 @@ void drawRealisticAltar(){
 }
 
 void drawRealisticCrucifix(){
-    // Parede de mármore cinza claro com veios escuros
+    // Parede de mármore cinza claro com textura
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_MARBLE);
     float marbleR=0.88f, marbleG=0.88f, marbleB=0.90f;
     drawBox(0.0f, 3.0f, -24.9f, 4.0f, 6.0f, 0.1f, marbleR, marbleG, marbleB);
+    glDisable(GL_TEXTURE_2D);
     
-    // Cruz (madeira escura marrom)
-    float woodR=0.45f, woodG=0.30f, woodB=0.20f;
-    drawBox(0.0f, 3.8f, -24.8f, 0.2f, 3.5f, 0.08f, woodR, woodG, woodB);
-    drawBox(0.0f, 4.5f, -24.8f, 1.8f, 0.2f, 0.08f, woodR, woodG, woodB);
+    // Cruz com nova textura personalizada
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_CROSS);
+    float crossR=0.45f, crossG=0.30f, crossB=0.20f;
+    drawBox(0.0f, 3.8f, -24.8f, 0.2f, 3.5f, 0.08f, crossR, crossG, crossB);
+    drawBox(0.0f, 4.5f, -24.8f, 1.8f, 0.2f, 0.08f, crossR, crossG, crossB);
+    glDisable(GL_TEXTURE_2D);
     
     // Cristo (corpo realista com tons de pele)
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
@@ -430,61 +715,31 @@ void drawAmbao(){
     float ambaoX = -2.5f;  
     float ambaoZ = -18.0f; 
     
-    // Base do ambão 
+    // Base do ambão com textura de madeira
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_WOOD);
     drawBox(ambaoX, FLOOR_Y+0.15f, ambaoZ, 0.8f, 0.3f, 0.6f, woodR, woodG, woodB);
     
     // Estrutura principal do ambão
     drawBox(ambaoX, FLOOR_Y+0.7f, ambaoZ, 0.7f, 1.4f, 0.5f, woodR, woodG, woodB);
+    glDisable(GL_TEXTURE_2D);
     
-    // Mesa do ambão (mármore branco) 
+    // Mesa do ambão com textura de mármore
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_MARBLE);
     drawBox(ambaoX, FLOOR_Y+1.4f, ambaoZ, 0.9f, 0.1f, 0.6f, marbleR, marbleG, marbleB);
+    glDisable(GL_TEXTURE_2D);
     
     // Apoio para os pés (pequeno degrau) 
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_WOOD);
     drawBox(ambaoX, FLOOR_Y+0.05f, ambaoZ+0.2f, 0.6f, 0.1f, 0.25f, woodR*0.8f, woodG*0.8f, woodB*0.8f);
+    glDisable(GL_TEXTURE_2D);
     float zFront = ambaoZ + 0.5f;
     drawAmbaoSymbol(ambaoX, FLOOR_Y + 0.95f, zFront);
 }
 
-void drawDoor(){
-    float doorR=0.6f, doorG=0.4f, doorB=0.2f;  
-    float handleR=0.9f, handleG=0.7f, handleB=0.2f; 
-    
-    if (doorOpen) {
-        glPushMatrix();
-        glTranslatef(-1.0f, 0.0f, 0.0f);
-        glRotatef(90, 0, 1, 0);
-        glTranslatef(1.0f, 0.0f, 0.0f);
-        drawBox(-1.0f, 1.5f, 15.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
-        glPopMatrix();
-        
-        glPushMatrix();
-        glTranslatef(1.0f, 0.0f, 0.0f);
-        glRotatef(-90, 0, 1, 0);
-        glTranslatef(-1.0f, 0.0f, 0.0f);
-        drawBox(1.0f, 1.5f, 15.1f, 0.1f, 3.0f, 2.0f, doorR, doorG, doorB);
-        glPopMatrix();
-        
-        drawBox(-1.8f, 1.5f, 15.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-        drawBox(1.8f, 1.5f, 15.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-    } else {
-        drawBox(-1.0f, 1.5f, 15.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
-        
-        drawBox(1.0f, 1.5f, 15.1f, 2.0f, 3.0f, 0.1f, doorR, doorG, doorB);
-        
-        drawBox(-0.2f, 1.5f, 15.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-        drawBox(0.2f, 1.5f, 15.15f, 0.05f, 0.1f, 0.05f, handleR, handleG, handleB);
-        
-        drawBox(-1.0f, 1.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(-1.0f, 1.5f, 15.12f, 0.1f, 2.8f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(-1.0f, 2.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(-1.0f, 0.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        
-        drawBox(1.0f, 1.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(1.0f, 1.5f, 15.12f, 0.1f, 2.8f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(1.0f, 2.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-        drawBox(1.0f, 0.5f, 15.12f, 1.8f, 0.1f, 0.05f, doorR*0.8f, doorG*0.8f, doorB*0.8f);
-    }
-}
+// drawDoor removida (porta não desenhada)
 
 //================== CADEIRAS  ==================
 void drawPlasticChairWhite(){
@@ -585,15 +840,15 @@ void drawChurchOpaque(){
 	float wallR=0.80f, wallG=0.74f, wallB=0.68f;  
 	float ceilR=0.92f, ceilG=0.92f, ceilB=0.94f;  
 
-	// Piso texturizado
+	// Piso texturizado com azulejos reflexivos
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, TEX_FLOOR);
+	glBindTexture(GL_TEXTURE_2D, TEX_REFLECTIVE_TILES);
 	drawTexturedQuad(
 		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f - CH_DEPTH,
 		 CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f - CH_DEPTH,
 		 CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f,
 		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f,
-		6.0f, CH_DEPTH*0.25f);
+		8.0f, CH_DEPTH*0.3f);
 
 	// Teto
 	glDisable(GL_TEXTURE_2D);
@@ -643,7 +898,6 @@ void drawChurchOpaque(){
 
     drawAFrameFacade();
     drawPhotoStyleEntrance();
-    drawDoor();
 
 	// Caminho frontal com textura no topo das lajotas
 	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_TILE);
@@ -850,8 +1104,8 @@ void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
         // parede de trás
         if (tz < backZ + RADIUS) tz = backZ + RADIUS;
 
-        // Porta fechada: bloqueia tudo; aberta: bloqueia laterais (|x| > DOOR_HALF)
-        bool bloqueia = !doorOpen || (std::fabs(tx) > DOOR_HALF);
+        // Porta removida: passagem sempre liberada no vão central
+        bool bloqueia = (std::fabs(tx) > DOOR_HALF);
 
         if (bloqueia) {
             const float eps = 0.0005f;
@@ -919,68 +1173,7 @@ void drawCrosshair(){
     glMatrixMode(GL_MODELVIEW);
 }
 
-//================== UI 2D: BOTÃO DA PORTA ==================
-// Retângulo do botão em coordenadas de tela (pixels)
-inline void getDoorButtonRect(int& x,int& y,int& w,int& h){
-    x = 20; w = 200; h = 40; y = 20; 
-}
-
-inline bool isInsideDoorButton(int mx, int my){
-    int bx,by,bw,bh; getDoorButtonRect(bx,by,bw,bh);
-    return (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh);
-}
-
-void drawDoorUIButton(){
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    gluOrtho2D(0, WIN_W, 0, WIN_H);
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-
-    int bx,by,bw,bh; getDoorButtonRect(bx,by,bw,bh);
-
-    float r = doorOpen ? 0.20f : 0.20f;
-    float g = doorOpen ? 0.60f : 0.20f;
-    float b = doorOpen ? 0.20f : 0.60f;
-    glColor3f(r,g,b);
-    glBegin(GL_QUADS);
-        glVertex2i(bx,     by);
-        glVertex2i(bx+bw,  by);
-        glVertex2i(bx+bw,  by+bh);
-        glVertex2i(bx,     by+bh);
-    glEnd();
-
-    glColor3f(1,1,1);
-    glLineWidth(2.0f);
-    glBegin(GL_LINE_LOOP);
-        glVertex2i(bx,     by);
-        glVertex2i(bx+bw,  by);
-        glVertex2i(bx+bw,  by+bh);
-        glVertex2i(bx,     by+bh);
-    glEnd();
-
-    const char* label1 = "Porta";
-    const char* label2 = doorOpen ? "Aberta (clique p/ fechar)" : "Fechada (clique p/ abrir)";
-    int tx = bx + 10; int ty = by + bh - 14; // perto do topo
-    glRasterPos2i(tx, ty);
-    for(const char* p=label1; *p; ++p) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *p);
-    glRasterPos2i(tx, by + 10);
-    for(const char* p=label2; *p; ++p) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *p);
-
-    glEnable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-}
+// (Botão de porta removido)
 
 //================== RENDER LOOP ==================
 void display(){
@@ -995,8 +1188,7 @@ void display(){
 
     drawCrosshair();
 
-    // botão da porta
-    drawDoorUIButton();
+    // botão de porta removido
 
     glutSwapBuffers();
 }
@@ -1028,7 +1220,7 @@ void keyDownCb(unsigned char k,int,int){
     }
     else if(kk=='r'){ camX=0; camY=EYE_H; camZ=27.2f; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
     else if(kk=='m'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
-    else if(kk=='e'){ doorOpen=!doorOpen; }
+    else if(kk=='e'){ /* tecla E sem efeito para porta removida */ }
 }
 void keyUpCb(unsigned char k,int,int){
     unsigned char kk = (k>='A' && k<='Z') ? (k-'A'+'a') : k; 
@@ -1038,12 +1230,7 @@ void keyUpCb(unsigned char k,int,int){
 
 // Callback de mouse: clique no botão da porta
 void mouseCb(int button, int state, int x, int y){
-    int yFromBottom = WIN_H - y;
-    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-        if (isInsideDoorButton(x, yFromBottom)){
-            doorOpen = !doorOpen;
-        }
-    }
+    (void)button; (void)state; (void)x; (void)y; // sem interação especial
 }
 void spDownCb(int k,int,int){ spDown[k]=true; shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0; }
 void spUpCb(int k,int,int){ spDown[k]=false; shiftHeld = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0; }
@@ -1054,7 +1241,9 @@ void idle(){
     lastMs=now;
     
     if (dt > 0.05f) dt = 0.05f;
-    
+
+    // Porta removida: nenhuma animação
+
     float fx,fy,fz,rx,rz; 
     getLookVectors(fx,fy,fz,rx,rz);
     float mvx=0, mvy=0, mvz=0;

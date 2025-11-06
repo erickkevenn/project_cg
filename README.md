@@ -94,10 +94,33 @@ g++ igreja.cpp -o igreja_final.exe -lfreeglut -lopengl32 -lglu32
 - **Blending**: Transparência para vidros e vitrais
 
 ### Iluminação
-- **Luz Ambiente**: Iluminação global suave
-- **Luz Direcional**: Spotlight no altar
-- **Lanterna**: Luz direcional do jogador
-- **Materiais**: Propriedades de reflexão realistas
+- **Modelo**: `GL_LIGHTING` habilitado com `GL_COLOR_MATERIAL` (difusa/ambiente pelo `glColor*`). Ambiente global via `glLightModelfv`.
+- **Materiais**: Especular definido com `glMaterialfv` e `glMaterialf` (`shininess` ≈ 18), `GL_LIGHT_MODEL_TWO_SIDE` ativo. Emissão usada sutilmente no piso.
+- **Luzes internas**:
+  - `GL_LIGHT0` (teto): luz principal difusa e especular suaves.
+  - `GL_LIGHT2` (altar): ponto de luz no altar, tom neutro.
+  - `GL_LIGHT3` (direcional): pseudo “sol” entrando da fachada para o interior.
+  - `GL_LIGHT4` (altar quente): ponto com atenuação linear (0.04) para tonalidade mais quente.
+- **Luzes externas**:
+  - `GL_LIGHT5` (spot fachada): `SPOT_CUTOFF` ≈ 22°, `SPOT_EXPONENT` ≈ 14, atenuação linear ≈ 0.03.
+  - `GL_LIGHT6` (direcional céu): preenchimento frio e suave.
+  - `GL_LIGHT7` (bounce do piso): direcional de baixo para cima, de baixa intensidade.
+- **Lanterna (F)**: `GL_LIGHT1` spot acoplado à câmera com `SPOT_CUTOFF` ≈ 25°, `SPOT_EXPONENT` ≈ 12 e atenuação linear ≈ 0.06.
+- **Transparências específicas**: Desliga `GL_LIGHTING` ao desenhar elementos translúcidos (ex.: chamas/vidros), habilita `GL_BLEND` e depois restaura a iluminação.
+
+### Texturas 
+- **Geração**: Totalmente procedurais em CPU, convertidas para texturas com mipmaps via `gluBuild2DMipmaps`.
+- **Parâmetros**: `GL_TEXTURE_MIN_FILTER = GL_LINEAR_MIPMAP_LINEAR`, `GL_TEXTURE_MAG_FILTER = GL_LINEAR`, `GL_TEXTURE_WRAP_{S,T} = GL_REPEAT`.
+- **Conjunto utilizado**:
+  - `TEX_REFLECTIVE_TILES`: piso interno com leve emissão simulando reflexo ambiental.
+  - `TEX_PLASTER`: reboco das paredes internas.
+  - `TEX_MARBLE`: mármore (altar, painel do crucifixo, detalhes).
+  - `TEX_WOOD`: madeira (porta, ambão, detalhes).
+  - `TEX_STONE`: pedra (elementos estruturais/degmaros/fachada).
+  - `TEX_TILE`: caminho frontal externo.
+  - `TEX_GRASS`: gramado externo.
+  - `TEX_CROSS`: textura procedural específica para a cruz.
+- **Aplicação**: uso de `drawTexturedQuad` com repetição de UV controlada por `uRepeat`/`vRepeat` para evitar estiramento; `glBindTexture` é habilitado/desabilitado por objeto.
 
 ### Física
 - **Colisão**: Paredes, cadeiras e objetos do altar; deslizamento em quinas

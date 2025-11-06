@@ -22,10 +22,14 @@ float camX = 0.0f, camY = EYE_H, camZ = 27.2f;
 float yawDeg = 0.0f, pitchDeg = 0.0f;
 bool keyDown[256]{}, spDown[256]{};
 bool flashlightOn = false, mouseCaptured = true, flyingMode = false, doorOpen = false;
+// Estado/animação da porta
+static float doorAngleDeg = 0.0f;      // 0 = fechada, ~95 = aberta
+static float doorTargetDeg = 0.0f;     // alvo animado (depende de doorOpen)
+static const float DOOR_OPEN_MAX = 95.0f; // abre para dentro da igreja
 float baseSpeed = 4.0f; int lastMs = 0;
 bool shiftHeld = false;
 
-// Porta removida: sem animação/som
+// Porta: animação implementada
 
 static float speedMul = 1.0f; // suavização de corrida
 static inline float deg2rad(float d){ return d*3.1415926535f/180.0f; }
@@ -475,6 +479,8 @@ void drawAFrameFacade(){
 
     drawPortalAFrame(zFront, true,  false); // frente: com cruz/placa
     drawPortalAFrame(zBack,  false, true ); // trás: sem cruz/placa
+
+    // Iluminação da fachada será controlada pelas luzes externas em setupLights()
 }
 
 //================== ENTRADA ==================
@@ -497,6 +503,44 @@ void drawPhotoStyleEntrance(){
     drawBox(0.0f, FLOOR_Y+0.01f, 14.6f, 3.8f, 0.02f, 1.2f, 0.75f,0.10f,0.10f);
     drawBox(0.0f, FLOOR_Y+0.02f, 14.9f, 1.9f, 0.02f, 0.7f, 0.55f,0.40f,0.22f);
 }
+// Porta dupla de madeira que abre para dentro da igreja
+void drawDoor(){
+    const float doorH = 3.0f;
+    const float leafW = DOOR_HALF;   // largura de cada folha
+    const float thick = 0.08f;
+    const float zDoor = 14.92f;      // alinhada com a fachada
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, TEX_WOOD);
+
+    // Folha esquerda (dobra no batente esquerdo)
+    glPushMatrix();
+    glTranslatef(-DOOR_HALF, FLOOR_Y, zDoor);
+    glRotatef( doorAngleDeg, 0, 1, 0); // abre para dentro (z negativo)
+    glTranslatef( leafW*0.5f, 0.0f, 0.0f);
+    drawBox(0.0f, doorH*0.5f, 0.0f, leafW, doorH, thick, 0.7f,0.5f,0.3f);
+    // Maçaneta interna/externa
+    drawBox( leafW*0.45f, 1.1f, thick*0.6f, 0.03f, 0.18f, 0.03f, 0.05f,0.05f,0.06f);
+    glPopMatrix();
+
+    // Folha direita (dobra no batente direito)
+    glPushMatrix();
+    glTranslatef( DOOR_HALF, FLOOR_Y, zDoor);
+    glRotatef(-doorAngleDeg, 0, 1, 0);
+    glTranslatef(-leafW*0.5f, 0.0f, 0.0f);
+    drawBox(0.0f, doorH*0.5f, 0.0f, leafW, doorH, thick, 0.7f,0.5f,0.3f);
+    drawBox(-leafW*0.45f, 1.1f, thick*0.6f, 0.03f, 0.18f, 0.03f, 0.05f,0.05f,0.06f);
+    glPopMatrix();
+
+    glDisable(GL_TEXTURE_2D);
+}
+
+// Efeito visual de luz saindo da porta quando aberta - REMOVIDO para evitar artefatos visuais
+void drawDoorLightEffect(){
+    // Função removida para eliminar o artefato triangular de iluminação
+    // A iluminação da porta agora é controlada apenas pelas luzes dinâmicas em updateFlashlight()
+    return;
+}
 //================== JARDIM EXTERNO ==================
 void drawGarden(){
     // Apenas palmeiras altas ao redor da igreja (sem plantações)
@@ -514,6 +558,8 @@ void drawGarden(){
     drawSphere(8.0f, FLOOR_Y+6.5f, 10.0f, 1.0f, 12, 12, leavesR, leavesG, leavesB);
     drawSphere(-10.0f, FLOOR_Y+6.5f, 5.0f, 1.0f, 12, 12, leavesR, leavesG, leavesB);
     drawSphere(10.0f, FLOOR_Y+6.5f, 5.0f, 1.0f, 12, 12, leavesR, leavesG, leavesB);
+
+    // Iluminação do jardim será controlada pelas luzes externas em setupLights()
 }
 
 //================== VITRAIS ==================
@@ -536,12 +582,18 @@ void drawStainedGlassXY(float w=1.4f,float h=2.6f,float archH=0.7f){
     }
     glEnd();
 
+    // Emissão suave para simular luz passando pelo vitral
+    GLfloat emissiveOn[4]  = {0.12f,0.12f,0.14f,1.0f};
+    GLfloat emissiveOff[4] = {0.0f,0.0f,0.0f,1.0f};
     auto pane=[&](float x0,float y0,float x1,float y1,float r,float g,float b,float a){
         glColor4f(r,g,b,a);
+        GLfloat e[4] = { r*0.25f, g*0.25f, b*0.25f, 1.0f };
+        glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, e);
         glBegin(GL_QUADS);
         glVertex3f(x0,y0,0.01f); glVertex3f(x1,y0,0.01f);
         glVertex3f(x1,y1,0.01f); glVertex3f(x0,y1,0.01f);
         glEnd();
+        glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissiveOff);
     };
 
     float xL=-w*0.5f+frameT, xR=w*0.5f-frameT, yB=frameT, yT=bodyH-frameT, xM=0, yM=bodyH*0.5f;
@@ -554,6 +606,7 @@ void drawStainedGlassXY(float w=1.4f,float h=2.6f,float archH=0.7f){
     // Arco azul mais profundo
     glBegin(GL_TRIANGLE_FAN);
     glColor4f(0.15f,0.45f,0.85f,0.75f);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissiveOn);
     glVertex3f(0, bodyH+archH*0.6f, 0.01f);
     for(int i=0;i<=seg;i++){
         float t=i/(float)seg, ang=3.14159265f*(1.0f-t);
@@ -561,6 +614,7 @@ void drawStainedGlassXY(float w=1.4f,float h=2.6f,float archH=0.7f){
         glVertex3f(x,y,0.01f);
     }
     glEnd();
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissiveOff);
 
     // Travessas mais finas e elegantes
     glLineWidth(2.0f); glColor4f(0.92f,0.92f,0.94f,0.95f);
@@ -835,6 +889,58 @@ void drawFrontPath(){
     }
 }
 
+//================== LUSTRE ==================
+void drawChandelier(){
+    const float chandelierX = 0.0f;
+    const float chandelierY = 5.5f; // altura do lustre acima do altar
+    const float chandelierZ = -22.5f; // posição acima do altar
+    
+    // Cores do lustre
+    float goldR = 0.9f, goldG = 0.7f, goldB = 0.2f;
+    float bronzeR = 0.6f, bronzeG = 0.4f, bronzeB = 0.2f;
+    float crystalR = 0.95f, crystalG = 0.95f, crystalB = 1.0f;
+    
+    // Corrente de suspensão
+    drawBox(chandelierX, chandelierY + 0.8f, chandelierZ, 0.05f, 1.6f, 0.05f, bronzeR, bronzeG, bronzeB);
+    
+    // Estrutura principal do lustre (anel dourado)
+    drawBox(chandelierX, chandelierY, chandelierZ, 1.2f, 0.15f, 1.2f, goldR, goldG, goldB);
+    
+    // Braços do lustre (6 braços)
+    for (int i = 0; i < 6; i++) {
+        float angle = i * 60.0f; // 60 graus entre cada braço
+        float rad = deg2rad(angle);
+        float armX = chandelierX + 0.6f * std::cos(rad);
+        float armZ = chandelierZ + 0.6f * std::sin(rad);
+        
+        // Braço principal
+        drawBox(armX, chandelierY, armZ, 0.4f, 0.08f, 0.08f, goldR, goldG, goldB);
+        
+        // Suporte da vela
+        drawBox(armX, chandelierY - 0.2f, armZ, 0.08f, 0.15f, 0.08f, bronzeR, bronzeG, bronzeB);
+        
+        // Vela (branca)
+        drawBox(armX, chandelierY - 0.35f, armZ, 0.06f, 0.3f, 0.06f, 1.0f, 1.0f, 0.98f);
+        
+        // Chama da vela (amarela translúcida)
+        glDisable(GL_LIGHTING);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glColor4f(1.0f, 0.8f, 0.2f, 0.7f);
+        drawBox(armX, chandelierY - 0.1f, armZ, 0.04f, 0.15f, 0.04f, 1.0f, 0.8f, 0.2f);
+        glDisable(GL_BLEND);
+        glEnable(GL_LIGHTING);
+        
+        // Cristal pendente
+        drawBox(armX, chandelierY - 0.5f, armZ, 0.08f, 0.2f, 0.08f, crystalR, crystalG, crystalB);
+    }
+    
+    // Cristais centrais pendentes
+    drawBox(chandelierX, chandelierY - 0.3f, chandelierZ, 0.12f, 0.3f, 0.12f, crystalR, crystalG, crystalB);
+    drawBox(chandelierX, chandelierY - 0.6f, chandelierZ, 0.08f, 0.2f, 0.08f, crystalR, crystalG, crystalB);
+    drawBox(chandelierX, chandelierY - 0.8f, chandelierZ, 0.06f, 0.15f, 0.06f, crystalR, crystalG, crystalB);
+}
+
 //================== IGREJA PRINCIPAL ==================
 void drawChurchOpaque(){
 	float wallR=0.80f, wallG=0.74f, wallB=0.68f;  
@@ -854,7 +960,7 @@ void drawChurchOpaque(){
 	glDisable(GL_TEXTURE_2D);
 	drawBox(0.0f, CH_HEIGHT, -5.0f,   CH_WIDTH, 0.1f, CH_DEPTH,  ceilR,ceilG,ceilB);
 
-	// Paredes laterais e fundo (reboco)
+    // Paredes laterais e fundo (reboco)
 	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_PLASTER);
 	// Parede esquerda
 	drawTexturedQuad(
@@ -870,7 +976,7 @@ void drawChurchOpaque(){
 		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
 		 CH_WIDTH*0.5f, 0.0f, 15.0f,
 		 CH_DEPTH*0.25f, CH_HEIGHT*0.25f);
-	// Parede do fundo
+    // Parede do fundo
 	drawTexturedQuad(
 		-CH_WIDTH*0.5f, 0.0f, -25.0f,
 		 CH_WIDTH*0.5f, 0.0f, -25.0f,
@@ -878,6 +984,23 @@ void drawChurchOpaque(){
 		-CH_WIDTH*0.5f, CH_HEIGHT, -25.0f,
 		 CH_WIDTH*0.3f, CH_HEIGHT*0.3f);
 	glDisable(GL_TEXTURE_2D);
+
+    // Material emissivo muito sutil no piso (reflexo de luz ambiente)
+    {
+        GLfloat e[4] = {0.02f,0.02f,0.025f,1.0f};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, e);
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, TEX_REFLECTIVE_TILES);
+        drawTexturedQuad(
+            -CH_WIDTH*0.5f, FLOOR_Y-0.049f, 15.0f - CH_DEPTH,
+             CH_WIDTH*0.5f, FLOOR_Y-0.049f, 15.0f - CH_DEPTH,
+             CH_WIDTH*0.5f, FLOOR_Y-0.049f, 15.0f,
+            -CH_WIDTH*0.5f, FLOOR_Y-0.049f, 15.0f,
+            8.0f, CH_DEPTH*0.3f);
+        glDisable(GL_TEXTURE_2D);
+        GLfloat e0[4] = {0,0,0,1};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, e0);
+    }
 
     drawBox(-(CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 15.0f,
             (CH_WIDTH*0.5f-DOOR_HALF), CH_HEIGHT, WALL_T, wallR,wallG,wallB);
@@ -890,6 +1013,7 @@ void drawChurchOpaque(){
     drawRealisticAltar();
     drawAmbao();
     drawRealisticStatues();
+    drawChandelier(); // Lustre no meio da igreja
 
     drawProcessionalCross();
     
@@ -898,6 +1022,13 @@ void drawChurchOpaque(){
 
     drawAFrameFacade();
     drawPhotoStyleEntrance();
+    // Porta desenhada após a moldura da entrada
+    drawDoor();
+    // Efeito de luz quando a porta está aberta
+    drawDoorLightEffect();
+    
+    // Jardim externo com iluminação sutil
+    drawGarden();
 
 	// Caminho frontal com textura no topo das lajotas
 	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_TILE);
@@ -956,13 +1087,23 @@ void drawChurchWindows(){
 //================== LUZ/CÂMERA ==================
 void setupLights(){
     glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
-    GLfloat globalAmb[4] = {0.14f,0.14f,0.14f,1.0f};
+    GLfloat globalAmb[4] = {0.16f,0.16f,0.18f,1.0f};
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmb);
 
+    // Materiais mais realistas
+    GLfloat specMat[4] = {0.18f,0.18f,0.18f,1};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specMat);
+    glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, 18.0f);
+
+    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+
+    //================== LUZES INTERNAS ==================
+    
+    // Luz principal do teto
+    glEnable(GL_LIGHT0);
     GLfloat pos0[4]  = { 0.0f, 7.0f, 0.0f, 1.0f };
     GLfloat dif0[4]  = { 0.65f,0.65f,0.65f,1.0f };
     GLfloat amb0[4]  = { 0.05f,0.05f,0.05f,1.0f };
@@ -972,6 +1113,7 @@ void setupLights(){
     glLightfv(GL_LIGHT0, GL_AMBIENT,  amb0);
     glLightfv(GL_LIGHT0, GL_SPECULAR, spec0);
 
+    // Luz do altar
     glEnable(GL_LIGHT2);
     GLfloat pos2[4] = { 0.0f, 4.0f, -22.0f, 1.0f };
     GLfloat dif2[4] = { 0.55f,0.55f,0.55f,1.0f };
@@ -979,13 +1121,6 @@ void setupLights(){
     glLightfv(GL_LIGHT2, GL_POSITION, pos2);
     glLightfv(GL_LIGHT2, GL_DIFFUSE,  dif2);
     glLightfv(GL_LIGHT2, GL_AMBIENT,  amb2);
-
-    // Materiais mais realistas
-    GLfloat specMat[4] = {0.18f,0.18f,0.18f,1};
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specMat);
-    glMaterialf (GL_FRONT_AND_BACK, GL_SHININESS, 18.0f);
-
-    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 
     // Luz direcional suave do "sol" vindo da entrada -> interior
     glEnable(GL_LIGHT3);
@@ -1006,25 +1141,79 @@ void setupLights(){
     glLightfv(GL_LIGHT4, GL_DIFFUSE,  dif4);
     glLightfv(GL_LIGHT4, GL_AMBIENT,  amb4);
     glLightf (GL_LIGHT4, GL_LINEAR_ATTENUATION, 0.04f);
-}
 
+     //================== LUZES EXTERNAS ==================
+     {
+        // Spot frontal para a fachada (feixe mais contido e quente)
+        glEnable(GL_LIGHT5);
+        GLfloat pos5[4]  = { 0.0f, 6.0f, 28.0f, 1.0f };   // mais distante
+        GLfloat dir5[3]  = { 0.0f, -0.18f, -0.98f };      // levemente para baixo
+        GLfloat dif5[4]  = { 0.28f, 0.24f, 0.20f, 1.0f }; // menos difuso (quente)
+        GLfloat amb5[4]  = { 0.010f, 0.010f, 0.012f, 1.0f };
+        GLfloat spc5[4]  = { 0.12f, 0.12f, 0.12f, 1.0f };
+
+        glLightfv(GL_LIGHT5, GL_POSITION,        pos5);
+        glLightfv(GL_LIGHT5, GL_SPOT_DIRECTION,  dir5);
+        glLightfv(GL_LIGHT5, GL_DIFFUSE,         dif5);
+        glLightfv(GL_LIGHT5, GL_AMBIENT,         amb5);
+        glLightfv(GL_LIGHT5, GL_SPECULAR,        spc5);
+        glLightf (GL_LIGHT5, GL_SPOT_CUTOFF,     22.0f);  // feixe mais estreito
+        glLightf (GL_LIGHT5, GL_SPOT_EXPONENT,   14.0f);  // queda mais forte
+        glLightf (GL_LIGHT5, GL_LINEAR_ATTENUATION, 0.030f); // atenua mais
+
+        // "Céu" direcional bem suave e frio (preenchimento)
+        glEnable(GL_LIGHT6);
+        GLfloat skyDir[4] = { 0.0f, -1.0f, -0.15f, 0.0f };     // direcional (w=0)
+        GLfloat skyDif[4] = { 0.28f, 0.33f, 0.45f, 1.0f };     // baixo
+        GLfloat skyAmb[4] = { 0.015f, 0.018f, 0.022f, 1.0f };
+        GLfloat skySpc[4] = { 0.10f, 0.10f, 0.10f, 1.0f };
+
+        glLightfv(GL_LIGHT6, GL_POSITION, skyDir);
+        glLightfv(GL_LIGHT6, GL_DIFFUSE,  skyDif);
+        glLightfv(GL_LIGHT6, GL_AMBIENT,  skyAmb);
+        glLightfv(GL_LIGHT6, GL_SPECULAR, skySpc);
+
+        // “Bounce” do piso (quase imperceptível, tira o chapado)
+        glEnable(GL_LIGHT7);
+        GLfloat bounceDir[4] = { 0.0f, 1.0f, 0.0f, 0.0f };     // direcional de baixo
+        GLfloat bounceDif[4] = { 0.12f, 0.10f, 0.09f, 1.0f };
+        GLfloat bounceAmb[4] = { 0.005f, 0.005f, 0.005f, 1.0f };
+        GLfloat bounceSpc[4] = { 0.08f, 0.08f, 0.08f, 1.0f };
+
+        glLightfv(GL_LIGHT7, GL_POSITION, bounceDir);
+        glLightfv(GL_LIGHT7, GL_DIFFUSE,  bounceDif);
+        glLightfv(GL_LIGHT7, GL_AMBIENT,  bounceAmb);
+        glLightfv(GL_LIGHT7, GL_SPECULAR, bounceSpc);
+    }
+
+} // <-- FECHA setupLights() AQUI
+
+//================== FLASHLIGHT (fora de setupLights) ==================
 void updateFlashlight(){
     if (flashlightOn){
         glEnable(GL_LIGHT1);
-        GLfloat pos[4]={camX,camY,camZ,1};
-        float fx,fy,fz,rx,rz; getLookVectors(fx,fy,fz,rx,rz);
-        GLfloat dir[3]={fx,fy,fz};
-        GLfloat dif[4]={1.0f,1.0f,0.9f,1.0f};
-        GLfloat amb[4]={0.00f,0.00f,0.00f,1.0f};
-        glLightfv(GL_LIGHT1,GL_POSITION,pos);
-        glLightfv(GL_LIGHT1,GL_SPOT_DIRECTION,dir);
-        glLightfv(GL_LIGHT1,GL_DIFFUSE,dif);
-        glLightfv(GL_LIGHT1,GL_AMBIENT,amb);
-        glLightf(GL_LIGHT1,GL_SPOT_CUTOFF,25.0f);
-        glLightf(GL_LIGHT1,GL_SPOT_EXPONENT,12.0f);
-        glLightf(GL_LIGHT1,GL_LINEAR_ATTENUATION,0.06f);
-    } else glDisable(GL_LIGHT1);
+        GLfloat pos[4] = { camX, camY, camZ, 1.0f };
+        float fx,fy,fz, rx,rz; 
+        getLookVectors(fx,fy,fz,rx,rz);
+        GLfloat dir[3] = { fx, fy, fz };
+        GLfloat dif[4] = { 1.0f, 1.0f, 0.9f, 1.0f };
+        GLfloat amb[4] = { 0.00f, 0.00f, 0.00f, 1.0f };
+
+        glLightfv(GL_LIGHT1, GL_POSITION,       pos);
+        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, dir);
+        glLightfv(GL_LIGHT1, GL_DIFFUSE,        dif);
+        glLightfv(GL_LIGHT1, GL_AMBIENT,        amb);
+        glLightf (GL_LIGHT1, GL_SPOT_CUTOFF,    25.0f);
+        glLightf (GL_LIGHT1, GL_SPOT_EXPONENT,  12.0f);
+        glLightf (GL_LIGHT1, GL_LINEAR_ATTENUATION, 0.06f);
+    } else {
+        glDisable(GL_LIGHT1);
+    }
+
+    // A luz da porta agora é coberta pelas luzes externas de setupLights().
 }
+
+
 
 void applyCamera(){
     float fx,fy,fz,rx,rz; getLookVectors(fx,fy,fz,rx,rz);
@@ -1104,10 +1293,10 @@ void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
         // parede de trás
         if (tz < backZ + RADIUS) tz = backZ + RADIUS;
 
-        // Porta removida: passagem sempre liberada no vão central
-        bool bloqueia = (std::fabs(tx) > DOOR_HALF);
-
-        if (bloqueia) {
+        // Porta no vão central: bloqueia laterais sempre; centro bloqueia se fechada
+        bool hittingSolidWall = (std::fabs(tx) > DOOR_HALF);
+        bool doorIsClosed = (doorAngleDeg < 5.0f);
+        if (hittingSolidWall || doorIsClosed) {
             const float eps = 0.0005f;
             bool estavaFora   = (oz >= frontZ + RADIUS - eps);
             bool estavaDentro = (oz <= frontZ - RADIUS + eps);
@@ -1218,9 +1407,9 @@ void keyDownCb(unsigned char k,int,int){
         flyingMode=!flyingMode;
         if(!flyingMode && camY < EYE_H) camY = EYE_H;
     }
-    else if(kk=='r'){ camX=0; camY=EYE_H; camZ=27.2f; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; }
+    else if(kk=='r'){ camX=0; camY=EYE_H; camZ=27.2f; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; doorTargetDeg=0.0f; }
     else if(kk=='m'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
-    else if(kk=='e'){ /* tecla E sem efeito para porta removida */ }
+    else if(kk=='e'){ doorOpen = !doorOpen; doorTargetDeg = doorOpen ? DOOR_OPEN_MAX : 0.0f; }
 }
 void keyUpCb(unsigned char k,int,int){
     unsigned char kk = (k>='A' && k<='Z') ? (k-'A'+'a') : k; 
@@ -1242,7 +1431,14 @@ void idle(){
     
     if (dt > 0.05f) dt = 0.05f;
 
-    // Porta removida: nenhuma animação
+    // Animação suave da porta
+    {
+        float diff = doorTargetDeg - doorAngleDeg;
+        float speed = 180.0f; // graus/seg
+        float step = speed * dt;
+        if (std::fabs(diff) <= step) doorAngleDeg = doorTargetDeg;
+        else doorAngleDeg += (diff > 0 ? step : -step);
+    }
 
     float fx,fy,fz,rx,rz; 
     getLookVectors(fx,fy,fz,rx,rz);

@@ -9,7 +9,7 @@ static const char* TITLE = "Igreja - Tabuleiro dos Martins ";
 int   WIN_W = 1280, WIN_H = 720;
 
 const float CH_WIDTH  = 12.0f;  
-const float CH_DEPTH  = 40.0f;   
+const float CH_DEPTH  = 30.0f;   
 const float CH_HEIGHT =  6.0f;
 const float DOOR_HALF =  2.0f;
 const float WALL_T    =  0.2f;
@@ -18,10 +18,11 @@ const float EYE_H     =  1.7f;
 
 const float RADIUS    = 0.3f;
 
-float camX = 0.0f, camY = EYE_H, camZ = 27.2f;
+float camX = 0.0f, camY = EYE_H, camZ = 15.0f;  // Ajustado para nova entrada
 float yawDeg = 0.0f, pitchDeg = 0.0f;
 bool keyDown[256]{}, spDown[256]{};
 bool flashlightOn = false, mouseCaptured = true, flyingMode = false, doorOpen = false;
+bool lightingEnabled = true;   // Toggle para iluminação (tecla L)
 // Estado/animação da porta
 static float doorAngleDeg = 0.0f;      // 0 = fechada, ~95 = aberta
 static float doorTargetDeg = 0.0f;     // alvo animado (depende de doorOpen)
@@ -480,6 +481,8 @@ void initTextures(){
 	createTextureRGBA(TEX_ALTAR_WALL, W,H, genAltarWallTexture(W,H));
 }
 
+
+
 // Quad com repetição de UV
 void drawTexturedQuad(float x0,float y0,float z0, float x1,float y1,float z1,
 	float x2,float y2,float z2, float x3,float y3,float z3,
@@ -571,7 +574,7 @@ void drawPortalAFrame(float zCenter, bool addCross, bool groundLevel = false){
 //================== FACHADA EM A-FRAME (V INVERTIDO) ==================
 void drawAFrameFacade(){
     // Base de pedra com RECORTE central
-    const float baseW = 14.0f, baseH = 2.2f, baseZ = 16.8f;
+    const float baseW = 14.0f, baseH = 2.2f, baseZ = 11.8f;
     const float gapW  = 4.8f;
     const float sideW = (baseW - gapW) * 0.5f;
     const float stoneR=0.62f, stoneG=0.58f, stoneB=0.54f;
@@ -580,8 +583,8 @@ void drawAFrameFacade(){
     drawBox( (gapW*0.5f + sideW*0.5f), baseH*0.5f, baseZ, sideW, baseH, 0.30f, stoneR,stoneG,stoneB);
     drawBox(0.0f, 0.12f, baseZ, gapW, 0.24f, 0.28f, stoneR*0.9f, stoneG*0.9f, stoneB*0.9f);
 
-    const float zFront = 16.8f; // arco da frente
-    const float zBack  = 16.0f; // arco de trás
+    const float zFront = 11.8f; // arco da frente
+    const float zBack  = 11.0f; // arco de trás
 
     drawPortalAFrame(zFront, true,  false); // frente: com cruz/placa
     drawPortalAFrame(zBack,  false, true ); // trás: sem cruz/placa
@@ -595,7 +598,7 @@ void drawPhotoStyleEntrance(){
     const float doorW = DOOR_HALF*2.0f;  
     const float doorH = 3.0f;
     const float frameW= 0.35f;            
-    const float zFace = 14.90f;          
+    const float zFace = 9.90f;          
     const float fr=0.72f, fg=0.74f, fb=0.77f;
 
     // ombreiras
@@ -604,17 +607,17 @@ void drawPhotoStyleEntrance(){
     // verga
     drawBox(0.0f, doorH + frameW*0.5f, zFace, doorW + frameW*2.0f, frameW, 0.20f, fr,fg,fb);
 
-    drawBox(0.0f, 3.1f, 15.0f, 0.8f, 0.25f, 0.25f, 0.90f,0.90f,0.92f);
+    drawBox(0.0f, 3.1f, 10.0f, 0.8f, 0.25f, 0.25f, 0.90f,0.90f,0.92f);
 
-    drawBox(0.0f, FLOOR_Y+0.01f, 14.6f, 3.8f, 0.02f, 1.2f, 0.75f,0.10f,0.10f);
-    drawBox(0.0f, FLOOR_Y+0.02f, 14.9f, 1.9f, 0.02f, 0.7f, 0.55f,0.40f,0.22f);
+    drawBox(0.0f, FLOOR_Y+0.01f, 9.6f, 3.8f, 0.02f, 1.2f, 0.75f,0.10f,0.10f);
+    drawBox(0.0f, FLOOR_Y+0.02f, 9.9f, 1.9f, 0.02f, 0.7f, 0.55f,0.40f,0.22f);
 }
 // Porta dupla de madeira que abre para dentro da igreja
 void drawDoor(){
     const float doorH = 3.0f;
     const float leafW = DOOR_HALF;   // largura de cada folha
     const float thick = 0.08f;
-    const float zDoor = 14.92f;      // alinhada com a fachada
+    const float zDoor = 9.92f;      // alinhada com a fachada
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, TEX_WOOD);
@@ -740,107 +743,103 @@ inline void placeStainedOnSide(float xSide,float y,float z){
 
 //================== OBJETOS ==================
 void drawRealisticAltar(){
+    // Altar movido para frente (de Z=-13.5 para Z=-11.5)
     // Degrau de escada com textura de pedra
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, TEX_STONE);
-    drawBox(0.0f, FLOOR_Y+0.15f, -22.5f, 5.0f, 0.3f, 2.0f, 0.1f, 0.1f, 0.1f);
+    drawBox(0.0f, FLOOR_Y+0.15f, -11.5f, 5.0f, 0.3f, 2.0f, 0.1f, 0.1f, 0.1f);
     
     // Segundo degrau menor
-    drawBox(0.0f, FLOOR_Y+0.35f, -22.3f, 4.5f, 0.2f, 1.6f, 0.15f, 0.15f, 0.15f);
+    drawBox(0.0f, FLOOR_Y+0.35f, -11.3f, 4.5f, 0.2f, 1.6f, 0.15f, 0.15f, 0.15f);
     glDisable(GL_TEXTURE_2D);
     
     // Base do altar com textura de mármore
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, TEX_MARBLE);
     float marbleR=0.95f, marbleG=0.95f, marbleB=0.97f;
-    drawBox(0.0f, FLOOR_Y+0.75f, -22.5f, 3.8f, 1.1f, 1.4f, marbleR, marbleG, marbleB);
+    drawBox(0.0f, FLOOR_Y+0.75f, -11.5f, 3.8f, 1.1f, 1.4f, marbleR, marbleG, marbleB);
     glDisable(GL_TEXTURE_2D);
     
     // Painel frontal (mármore preto com Agnus Dei dourado)
-    drawBox(0.0f, FLOOR_Y+0.75f, -21.9f, 3.0f, 1.0f, 0.05f, 0.12f, 0.12f, 0.15f);
+    drawBox(0.0f, FLOOR_Y+0.75f, -10.9f, 3.0f, 1.0f, 0.05f, 0.12f, 0.12f, 0.15f);
     
     // Detalhe dourado do Agnus Dei (Cordeiro de Deus) 
-    drawBox(0.0f, FLOOR_Y+1.0f, -21.85f, 1.2f, 0.4f, 0.02f, 0.9f, 0.7f, 0.2f);
+    drawBox(0.0f, FLOOR_Y+1.0f, -10.85f, 1.2f, 0.4f, 0.02f, 0.9f, 0.7f, 0.2f);
     
     // Toalha de altar (branca com renda nas bordas) 
-    drawBox(0.0f, FLOOR_Y+1.3f, -22.5f, 4.0f, 0.05f, 1.5f, 1.0f, 1.0f, 1.0f);
+    drawBox(0.0f, FLOOR_Y+1.3f, -11.5f, 4.0f, 0.05f, 1.5f, 1.0f, 1.0f, 1.0f);
     
     // Bíblia aberta (capa avermelhada/marrom) 
-    drawBox(-0.8f, FLOOR_Y+1.35f, -22.3f, 0.5f, 0.03f, 0.3f, 0.7f, 0.4f, 0.3f);
-    drawBox(-0.8f, FLOOR_Y+1.38f, -22.3f, 0.48f, 0.01f, 0.28f, 0.95f, 0.95f, 0.98f);
+    drawBox(-0.8f, FLOOR_Y+1.35f, -11.3f, 0.5f, 0.03f, 0.3f, 0.7f, 0.4f, 0.3f);
+    drawBox(-0.8f, FLOOR_Y+1.38f, -11.3f, 0.48f, 0.01f, 0.28f, 0.95f, 0.95f, 0.98f);
 }
 
 void drawRealisticCrucifix(){
-    // Parede de mármore decorado com textura realista
+    // Parede de mármore branco suave com textura especial para altar (espaço adequado para circulação)
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, TEX_ALTAR_WALL);
-    // Desenhar a parede usando drawTexturedQuad para melhor aplicação da textura
-    // Parede central: x de -2.0 a 2.0, y de 0.0 a 6.0, z = -24.9
-    drawTexturedQuad(
-        -2.0f, 0.0f, -24.9f,   // canto inferior esquerdo
-         2.0f, 0.0f, -24.9f,   // canto inferior direito
-         2.0f, 6.0f, -24.9f,   // canto superior direito
-        -2.0f, 6.0f, -24.9f,   // canto superior esquerdo
-        2.0f, 3.0f);            // repetição da textura (largura x altura)
+    float marbleR=0.94f, marbleG=0.92f, marbleB=0.90f;
+    drawBox(0.0f, 3.0f, -14.5f, 4.0f, 6.0f, 0.1f, marbleR, marbleG, marbleB);
     glDisable(GL_TEXTURE_2D);
     
     // Cruz com nova textura personalizada
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, TEX_CROSS);
     float crossR=0.45f, crossG=0.30f, crossB=0.20f;
-    drawBox(0.0f, 3.8f, -24.8f, 0.2f, 3.5f, 0.08f, crossR, crossG, crossB);
-    drawBox(0.0f, 4.5f, -24.8f, 1.8f, 0.2f, 0.08f, crossR, crossG, crossB);
+    drawBox(0.0f, 3.8f, -14.4f, 0.2f, 3.5f, 0.08f, crossR, crossG, crossB);
+    drawBox(0.0f, 4.5f, -14.4f, 1.8f, 0.2f, 0.08f, crossR, crossG, crossB);
     glDisable(GL_TEXTURE_2D);
     
     // Cristo (corpo realista com tons de pele)
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
-    drawBox(0.0f, 4.2f, -24.75f, 0.15f, 1.5f, 0.05f, skinR, skinG, skinB);
-    drawBox(0.0f, 4.7f, -24.75f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.2f, -14.35f, 0.15f, 1.5f, 0.05f, skinR, skinG, skinB);
+    drawBox(0.0f, 4.7f, -14.35f, 0.12f, 0.12f, 0.05f, skinR, skinG, skinB);
     
     // Braços
-    drawBox(-0.45f, 4.5f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
-    drawBox( 0.45f, 4.5f, -24.75f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
+    drawBox(-0.45f, 4.5f, -14.35f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
+    drawBox( 0.45f, 4.5f, -14.35f, 0.6f, 0.08f, 0.05f, skinR, skinG, skinB);
     
     // Pano branco cobrindo a cintura
-    drawBox(0.0f, 4.1f, -24.7f, 0.25f, 0.3f, 0.03f, 1.0f, 1.0f, 1.0f);
+    drawBox(0.0f, 4.1f, -14.3f, 0.25f, 0.3f, 0.03f, 1.0f, 1.0f, 1.0f);
 }
 
 void drawRealisticStatues(){
     const float DY = 2.20f;
-    // Estátua da Virgem Maria
+    // Estátua da Virgem Maria (com espaço adequado para circulação atrás do altar)
     float blueR=0.2f, blueG=0.4f, blueB=0.8f;
     float whiteR=0.95f, whiteG=0.95f, whiteB=0.98f;
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
 
-    drawBox(-2.5f, FLOOR_Y+0.8f + DY, -24.8f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
-    drawBox(-2.5f, FLOOR_Y+1.4f + DY, -24.8f, 0.3f, 1.2f, 0.2f, blueR, blueG, blueB);
-    drawSphere(-2.5f, FLOOR_Y+2.2f + DY, -24.8f, 0.12f, 12, 12, skinR, skinG, skinB);
-    drawBox(-2.5f, FLOOR_Y+1.7f + DY, -24.8f, 0.4f, 0.8f, 0.15f, whiteR, whiteG, whiteB);
+    drawBox(-2.5f, FLOOR_Y+0.8f + DY, -14.4f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
+    drawBox(-2.5f, FLOOR_Y+1.4f + DY, -14.4f, 0.3f, 1.2f, 0.2f, blueR, blueG, blueB);
+    drawSphere(-2.5f, FLOOR_Y+2.2f + DY, -14.4f, 0.12f, 12, 12, skinR, skinG, skinB);
+    drawBox(-2.5f, FLOOR_Y+1.7f + DY, -14.4f, 0.4f, 0.8f, 0.15f, whiteR, whiteG, whiteB);
     
     // Estátua de São José
     float brownR=0.6f, brownG=0.4f, brownB=0.2f;
-    drawBox( 2.5f, FLOOR_Y+0.8f + DY, -24.8f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
-    drawBox( 2.5f, FLOOR_Y+1.4f + DY, -24.8f, 0.3f, 1.2f, 0.2f, brownR, brownG, brownB);
-    drawSphere( 2.5f, FLOOR_Y+2.2f + DY, -24.8f, 0.12f, 12, 12, skinR, skinG, skinB);
-    drawBox( 2.7f, FLOOR_Y+1.6f + DY, -24.8f, 0.03f, 1.0f, 0.03f, 0.4f, 0.3f, 0.2f);
+    drawBox( 2.5f, FLOOR_Y+0.8f + DY, -14.4f, 0.8f, 0.1f, 0.4f, 1.0f, 1.0f, 1.0f);
+    drawBox( 2.5f, FLOOR_Y+1.4f + DY, -14.4f, 0.3f, 1.2f, 0.2f, brownR, brownG, brownB);
+    drawSphere( 2.5f, FLOOR_Y+2.2f + DY, -14.4f, 0.12f, 12, 12, skinR, skinG, skinB);
+    drawBox( 2.7f, FLOOR_Y+1.6f + DY, -14.4f, 0.03f, 1.0f, 0.03f, 0.4f, 0.3f, 0.2f);
 }
 
 void drawProcessionalCross(){
     float goldR=0.9f, goldG=0.7f, goldB=0.2f;
     
+    // Cruz processional movida para frente (de Z=-12 para Z=-10)
     // Base dourada
-    drawBox(2.5f, FLOOR_Y+0.1f, -21.0f, 0.3f, 0.2f, 0.3f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+0.1f, -10.0f, 0.3f, 0.2f, 0.3f, goldR, goldG, goldB);
     
     // Haste principal dourada
-    drawBox(2.5f, FLOOR_Y+2.0f, -21.0f, 0.05f, 4.0f, 0.05f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+2.0f, -10.0f, 0.05f, 4.0f, 0.05f, goldR, goldG, goldB);
     
     // Cruz no topo dourada
-    drawBox(2.5f, FLOOR_Y+4.2f, -21.0f, 0.05f, 0.4f, 0.05f, goldR, goldG, goldB);
-    drawBox(2.5f, FLOOR_Y+4.0f, -21.0f, 0.3f, 0.05f, 0.05f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+4.2f, -10.0f, 0.05f, 0.4f, 0.05f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+4.0f, -10.0f, 0.3f, 0.05f, 0.05f, goldR, goldG, goldB);
     
     // Crucifixo pequeno dourado
-    drawBox(2.5f, FLOOR_Y+4.2f, -20.95f, 0.02f, 0.15f, 0.02f, goldR, goldG, goldB);
-    drawBox(2.5f, FLOOR_Y+4.15f, -20.95f, 0.1f, 0.02f, 0.02f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+4.2f, -9.95f, 0.02f, 0.15f, 0.02f, goldR, goldG, goldB);
+    drawBox(2.5f, FLOOR_Y+4.15f, -9.95f, 0.1f, 0.02f, 0.02f, goldR, goldG, goldB);
 }
 
 // Símbolo do ambão
@@ -873,13 +872,13 @@ void drawAmbaoSymbol(float xCenter, float yCenter, float zFrontFace){
 
 
 void drawAmbao(){
-    // Ambão
+    // Ambão movido para frente (de Z=-10.5 para Z=-9.0)
     float woodR=0.4f, woodG=0.25f, woodB=0.15f;
     float marbleR=0.95f, marbleG=0.95f, marbleB=0.97f;
     
     // Posição do ambão: mais para o lado e virado para as cadeiras
     float ambaoX = -2.5f;  
-    float ambaoZ = -18.0f; 
+    float ambaoZ = -9.0f; 
     
     // Base do ambão com textura de madeira
     glEnable(GL_TEXTURE_2D);
@@ -930,8 +929,8 @@ void drawPlasticChairWhite(){
 }
 
 void drawChairsLayout(){
-    // Cadeiras orientadas para o altar (cruz)
-    for (float z=8.0f; z>=-16.0f; z-=2.5f){
+    // Cadeiras orientadas para o altar (cruz) - Z=6.5 até Z=-6.5
+    for (float z=6.5f; z>=-6.5f; z-=2.5f){
         for(int c=0;c<4;++c){
             float off=1.0f*c;
             glPushMatrix(); 
@@ -946,6 +945,49 @@ void drawChairsLayout(){
             drawPlasticChairWhite(); 
     glPopMatrix();
         }
+    }
+}
+
+//================== LUZES LED EMBUTIDAS NO TETO ==================
+void drawRecessedLEDLight(float x, float y, float z){
+    // Luz LED quadrada embutida no teto
+    const float lightSize = 0.15f;
+    const float lightDepth = 0.02f;
+    
+    // Moldura da luz (cinza escuro)
+    float frameR = 0.25f, frameG = 0.25f, frameB = 0.27f;
+    drawBox(x, y - lightDepth*0.5f, z, lightSize + 0.02f, lightDepth, lightSize + 0.02f, frameR, frameG, frameB);
+    
+    // Luz LED (branco brilhante com emissão)
+    glDisable(GL_LIGHTING);
+    GLfloat emissive[4] = {1.0f, 1.0f, 0.95f, 1.0f};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissive);
+    glColor3f(1.0f, 1.0f, 0.98f);
+    drawBox(x, y - lightDepth*0.3f, z, lightSize, 0.01f, lightSize, 1.0f, 1.0f, 0.98f);
+    
+    GLfloat emissiveOff[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissiveOff);
+    glEnable(GL_LIGHTING);
+}
+
+void drawCeilingLights(){
+    // Distribuir luzes LED embutidas ao longo do teto da igreja
+    const float ceilingY = CH_HEIGHT;
+    const float BACK_WALL_Z = -15.0f;
+    const float startZ = BACK_WALL_Z;
+    const float endZ = 10.0f;
+    const float lightSpacing = 3.5f;
+    
+    // Linha central de luzes
+    for (float z = startZ + 2.0f; z < endZ - 2.0f; z += lightSpacing) {
+        drawRecessedLEDLight(0.0f, ceilingY, z);
+    }
+    
+    // Linhas laterais de luzes (esquerda e direita)
+    const float sideX = CH_WIDTH * 0.35f;
+    for (float z = startZ + 1.5f; z < endZ - 1.5f; z += lightSpacing * 0.8f) {
+        drawRecessedLEDLight(-sideX, ceilingY, z);
+        drawRecessedLEDLight(sideX, ceilingY, z);
     }
 }
 
@@ -983,7 +1025,7 @@ void drawCeilingFan(float x, float y, float z, bool isLeftSide = true){
 void drawFrontPath(){
     const float pathW = 4.8f;   
     const float pathL = 22.0f;  
-    const float z0    = 16.2f;  
+    const float z0    = 11.2f;  
 
     drawBox(0.0f, FLOOR_Y-0.005f, z0 + pathL*0.5f,
             pathW, 0.02f, pathL, 0.72f, 0.72f, 0.74f);
@@ -1001,60 +1043,11 @@ void drawFrontPath(){
     }
 }
 
-//================== LUZES LED EMBUTIDAS NO TETO ==================
-void drawRecessedLEDLight(float x, float y, float z){
-    // Luz LED quadrada embutida no teto (como na imagem)
-    const float lightSize = 0.15f;  // tamanho da luz quadrada
-    const float lightDepth = 0.02f; // profundidade embutida
-    
-    // Moldura da luz (cinza escuro)
-    float frameR = 0.25f, frameG = 0.25f, frameB = 0.27f;
-    drawBox(x, y - lightDepth*0.5f, z, lightSize + 0.02f, lightDepth, lightSize + 0.02f, frameR, frameG, frameB);
-    
-    // Luz LED (branco brilhante com emissão)
-    glDisable(GL_LIGHTING);
-    GLfloat emissive[4] = {1.0f, 1.0f, 0.95f, 1.0f};
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissive);
-    glColor3f(1.0f, 1.0f, 0.98f);
-    drawBox(x, y - lightDepth*0.3f, z, lightSize, 0.01f, lightSize, 1.0f, 1.0f, 0.98f);
-    
-    GLfloat emissiveOff[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissiveOff);
-    glEnable(GL_LIGHTING);
-}
-
-void drawCeilingLights(){
-    // Distribuir luzes LED embutidas ao longo do teto da igreja
-    const float ceilingY = CH_HEIGHT;
-    const float startZ = 15.0f - CH_DEPTH;
-    const float endZ = 15.0f;
-    const float lightSpacing = 3.5f; // espaçamento entre luzes
-    
-    // Linha central de luzes
-    for (float z = startZ + 2.0f; z < endZ - 2.0f; z += lightSpacing) {
-        drawRecessedLEDLight(0.0f, ceilingY, z);
-    }
-    
-    // Linhas laterais de luzes (esquerda e direita)
-    const float sideX = CH_WIDTH * 0.35f; // posição lateral
-    for (float z = startZ + 1.5f; z < endZ - 1.5f; z += lightSpacing * 0.8f) {
-        drawRecessedLEDLight(-sideX, ceilingY, z);
-        drawRecessedLEDLight(sideX, ceilingY, z);
-    }
-}
-
-void setupCeilingLEDLights(){
-    // Configurar luzes dinâmicas para as LEDs embutidas no teto
-    // Aumentar a iluminação geral do teto para simular as LEDs embutidas
-    // A iluminação visual já é feita por drawRecessedLEDLight()
-    // Aqui apenas ajustamos a luz ambiente geral do teto
-}
-
 //================== LUSTRE ==================
 void drawChandelier(){
     const float chandelierX = 0.0f;
-    const float chandelierY = 5.5f; // altura do lustre acima do altar
-    const float chandelierZ = -22.5f; // posição acima do altar
+    const float chandelierY = 4.5f; // altura do lustre acima do altar (reduzida de 5.5 para 4.5)
+    const float chandelierZ = -13.5f; // posição acima do altar
     
     // Cores do lustre
     float goldR = 0.9f, goldG = 0.7f, goldB = 0.2f;
@@ -1108,24 +1101,25 @@ void drawChurchOpaque(){
 	float ceilR=0.92f, ceilG=0.92f, ceilB=0.94f;  
 
 	// Piso texturizado com azulejos reflexivos
+	const float BACK_WALL_Z = -15.0f; // Nova parede de fundo mais próxima
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, TEX_REFLECTIVE_TILES);
 	drawTexturedQuad(
-		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f - CH_DEPTH,
-		 CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f - CH_DEPTH,
-		 CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f,
-		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f,
-		8.0f, CH_DEPTH*0.3f);
+		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, BACK_WALL_Z,
+		 CH_WIDTH*0.5f, FLOOR_Y-0.05f, BACK_WALL_Z,
+		 CH_WIDTH*0.5f, FLOOR_Y-0.05f, 10.0f,
+		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, 10.0f,
+		8.0f, 25.0f*0.3f);
 
 	// Teto texturizado com painéis horizontais modernos
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, TEX_CEILING);
 	drawTexturedQuad(
-		-CH_WIDTH*0.5f, CH_HEIGHT, 15.0f - CH_DEPTH,
-		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f - CH_DEPTH,
-		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
-		-CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
-		 CH_WIDTH*0.4f, CH_DEPTH*0.4f);
+		-CH_WIDTH*0.5f, CH_HEIGHT, BACK_WALL_Z,
+		 CH_WIDTH*0.5f, CH_HEIGHT, BACK_WALL_Z,
+		 CH_WIDTH*0.5f, CH_HEIGHT, 10.0f,
+		-CH_WIDTH*0.5f, CH_HEIGHT, 10.0f,
+		 CH_WIDTH*0.4f, 25.0f*0.4f);
 	glDisable(GL_TEXTURE_2D);
 	
 	// Luzes LED embutidas no teto
@@ -1135,49 +1129,50 @@ void drawChurchOpaque(){
 	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_PLASTER);
 	// Parede esquerda
 	drawTexturedQuad(
-		-CH_WIDTH*0.5f, 0.0f, 15.0f - CH_DEPTH,
-		-CH_WIDTH*0.5f, CH_HEIGHT, 15.0f - CH_DEPTH,
-		-CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
-		-CH_WIDTH*0.5f, 0.0f, 15.0f,
-		 CH_DEPTH*0.25f, CH_HEIGHT*0.25f);
+		-CH_WIDTH*0.5f, 0.0f, BACK_WALL_Z,
+		-CH_WIDTH*0.5f, CH_HEIGHT, BACK_WALL_Z,
+		-CH_WIDTH*0.5f, CH_HEIGHT, 10.0f,
+		-CH_WIDTH*0.5f, 0.0f, 10.0f,
+		 25.0f*0.25f, CH_HEIGHT*0.25f);
 	// Parede direita
 	drawTexturedQuad(
-		 CH_WIDTH*0.5f, 0.0f, 15.0f - CH_DEPTH,
-		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f - CH_DEPTH,
-		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
-		 CH_WIDTH*0.5f, 0.0f, 15.0f,
-		 CH_DEPTH*0.25f, CH_HEIGHT*0.25f);
-    // Parede do fundo
+		 CH_WIDTH*0.5f, 0.0f, BACK_WALL_Z,
+		 CH_WIDTH*0.5f, CH_HEIGHT, BACK_WALL_Z,
+		 CH_WIDTH*0.5f, CH_HEIGHT, 10.0f,
+		 CH_WIDTH*0.5f, 0.0f, 10.0f,
+		 25.0f*0.25f, CH_HEIGHT*0.25f);
+    // Parede do fundo (mais próxima da cruz)
 	drawTexturedQuad(
-		-CH_WIDTH*0.5f, 0.0f, -25.0f,
-		 CH_WIDTH*0.5f, 0.0f, -25.0f,
-		 CH_WIDTH*0.5f, CH_HEIGHT, -25.0f,
-		-CH_WIDTH*0.5f, CH_HEIGHT, -25.0f,
+		-CH_WIDTH*0.5f, 0.0f, BACK_WALL_Z,
+		 CH_WIDTH*0.5f, 0.0f, BACK_WALL_Z,
+		 CH_WIDTH*0.5f, CH_HEIGHT, BACK_WALL_Z,
+		-CH_WIDTH*0.5f, CH_HEIGHT, BACK_WALL_Z,
 		 CH_WIDTH*0.3f, CH_HEIGHT*0.3f);
 	glDisable(GL_TEXTURE_2D);
 
     // Material emissivo muito sutil no piso (reflexo de luz ambiente)
     {
+        const float BACK_WALL_Z = -15.0f;
         GLfloat e[4] = {0.02f,0.02f,0.025f,1.0f};
         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, e);
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, TEX_REFLECTIVE_TILES);
         drawTexturedQuad(
-            -CH_WIDTH*0.5f, FLOOR_Y-0.049f, 15.0f - CH_DEPTH,
-             CH_WIDTH*0.5f, FLOOR_Y-0.049f, 15.0f - CH_DEPTH,
-             CH_WIDTH*0.5f, FLOOR_Y-0.049f, 15.0f,
-            -CH_WIDTH*0.5f, FLOOR_Y-0.049f, 15.0f,
-            8.0f, CH_DEPTH*0.3f);
+            -CH_WIDTH*0.5f, FLOOR_Y-0.049f, BACK_WALL_Z,
+             CH_WIDTH*0.5f, FLOOR_Y-0.049f, BACK_WALL_Z,
+             CH_WIDTH*0.5f, FLOOR_Y-0.049f, 10.0f,
+            -CH_WIDTH*0.5f, FLOOR_Y-0.049f, 10.0f,
+            8.0f, 25.0f*0.3f);
         glDisable(GL_TEXTURE_2D);
         GLfloat e0[4] = {0,0,0,1};
         glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, e0);
     }
 
-    drawBox(-(CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 15.0f,
+    drawBox(-(CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 10.0f,
             (CH_WIDTH*0.5f-DOOR_HALF), CH_HEIGHT, WALL_T, wallR,wallG,wallB);
-    drawBox( (CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 15.0f,
+    drawBox( (CH_WIDTH*0.5f+DOOR_HALF)*0.5f, CH_HEIGHT*0.5f, 10.0f,
             (CH_WIDTH*0.5f-DOOR_HALF), CH_HEIGHT, WALL_T, wallR,wallG,wallB);
-    drawBox(0.0f, (3.0f+CH_HEIGHT)*0.5f, 15.0f, DOOR_HALF*2.0f, (CH_HEIGHT-3.0f), WALL_T, wallR,wallG,wallB);
+    drawBox(0.0f, (3.0f+CH_HEIGHT)*0.5f, 10.0f, DOOR_HALF*2.0f, (CH_HEIGHT-3.0f), WALL_T, wallR,wallG,wallB);
 
     drawChairsLayout();
     drawRealisticCrucifix();
@@ -1188,8 +1183,14 @@ void drawChurchOpaque(){
 
     drawProcessionalCross();
     
-    drawCeilingFan(-5.8f, 4.5f, 0.0f, true);   
-    drawCeilingFan(5.8f, 4.5f, 0.0f, false);   
+    // Ventiladores ao lado das janelas (alternados)
+    // Janela Z=6.0: ventilador do lado esquerdo da janela
+    drawCeilingFan(-5.8f, 4.5f, 6.0f - 2.0f, true);    // Lado esquerdo da janela frontal esquerda
+    drawCeilingFan(5.8f, 4.5f, 6.0f - 2.0f, false);    // Lado esquerdo da janela frontal direita
+    
+    // Janela Z=-8.0: ventilador do lado direito da janela
+    drawCeilingFan(-5.8f, 4.5f, -8.0f + 2.0f, true);   // Lado direito da janela traseira esquerda
+    drawCeilingFan(5.8f, 4.5f, -8.0f + 2.0f, false);   // Lado direito da janela traseira direita   
 
     drawAFrameFacade();
     drawPhotoStyleEntrance();
@@ -1203,7 +1204,7 @@ void drawChurchOpaque(){
 
 	// Caminho frontal com textura no topo das lajotas
 	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_TILE);
-	const float pathW = 4.8f; const float pathL = 22.0f; const float z0 = 16.2f;
+	const float pathW = 4.8f; const float pathL = 22.0f; const float z0 = 11.2f;
 	drawTexturedQuad(
 		-pathW*0.5f, FLOOR_Y-0.005f, z0,
 		 pathW*0.5f, FLOOR_Y-0.005f, z0,
@@ -1257,6 +1258,15 @@ void drawChurchWindows(){
 
 //================== LUZ/CÂMERA ==================
 void setupLights(){
+    if (!lightingEnabled) {
+        glDisable(GL_LIGHTING);
+        // Desabilitar todas as luzes
+        for (int i = 0; i < 8; i++) {
+            glDisable(GL_LIGHT0 + i);
+        }
+        return;
+    }
+    
     glEnable(GL_LIGHTING);
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
@@ -1287,7 +1297,7 @@ void setupLights(){
 
     // Luz do altar
     glEnable(GL_LIGHT2);
-    GLfloat pos2[4] = { 0.0f, 4.0f, -22.0f, 1.0f };
+    GLfloat pos2[4] = { 0.0f, 4.0f, -13.0f, 1.0f };
     GLfloat dif2[4] = { 0.55f,0.55f,0.55f,1.0f };
     GLfloat amb2[4] = { 0.04f,0.04f,0.04f,1.0f };
     glLightfv(GL_LIGHT2, GL_POSITION, pos2);
@@ -1306,7 +1316,7 @@ void setupLights(){
 
     // Luz quente no altar
     glEnable(GL_LIGHT4);
-    GLfloat pos4[4] = { 0.0f, 5.0f, -23.0f, 1.0f };
+    GLfloat pos4[4] = { 0.0f, 5.0f, -14.0f, 1.0f };
     GLfloat dif4[4] = { 0.85f, 0.70f, 0.55f, 1.0f };
     GLfloat amb4[4] = { 0.05f, 0.04f, 0.03f, 1.0f };
     glLightfv(GL_LIGHT4, GL_POSITION, pos4);
@@ -1395,8 +1405,9 @@ void applyCamera(){
 
 //================== COLISÃO E MOVIMENTO ==================
 bool checkChairCollision(float x, float z){
-    const float startZ = 8.0f;
-    const float endZ   = -16.0f;
+    // Atualizado para cadeiras de Z=6.5 até Z=-6.5
+    const float startZ = 6.5f;
+    const float endZ   = -6.5f;
     const float pitchZ = 2.5f;
     const float baseX  = 2.5f;   
     const float pitchX = 1.0f;  
@@ -1430,14 +1441,18 @@ bool checkChairCollision(float x, float z){
 
 // Função para verificar colisão com objetos do altar
 bool checkAltarCollision(float x, float z){
-    if (x >= -2.5f && x <= 2.5f && z >= -23.5f && z <= -21.5f) return true;
+    // Altar (movido para Z=-11.5)
+    if (x >= -2.5f && x <= 2.5f && z >= -12.5f && z <= -10.5f) return true;
     
-    if (x >= -2.9f && x <= -2.1f && z >= -18.3f && z <= -17.7f) return true;
+    // Ambão (movido para Z=-9.0)
+    if (x >= -2.9f && x <= -2.1f && z >= -9.5f && z <= -8.5f) return true;
     
-    if (x >= -4.9f && x <= -4.1f && z >= -20.2f && z <= -19.8f) return true; // esquerda
-    if (x >= 4.1f && x <= 4.9f && z >= -20.2f && z <= -19.8f) return true;  // direita
+    // Santos (com espaço adequado atrás do altar)
+    if (x >= -3.0f && x <= -2.0f && z >= -14.8f && z <= -14.0f) return true; // esquerda
+    if (x >= 2.0f && x <= 3.0f && z >= -14.8f && z <= -14.0f) return true;  // direita
 
-    if (x >= 2.35f && x <= 2.65f && z >= -21.15f && z <= -20.85f) return true;
+    // Cruz processional (movida para Z=-10.0)
+    if (x >= 2.35f && x <= 2.65f && z >= -10.2f && z <= -9.8f) return true;
     
     return false;
 }
@@ -1449,7 +1464,7 @@ void collideAndMove(float& nx,float& ny,float& nz,float ox,float oy,float oz){
     }
     
     // Colisão com paredes
-    float halfW=CH_WIDTH*0.5f, backZ=-25, frontZ=15;
+    float halfW=CH_WIDTH*0.5f, backZ=-15, frontZ=10;
     float tx=nx, ty=ny, tz=nz;
     
     if (ty < EYE_H) ty = EYE_H;
@@ -1579,9 +1594,14 @@ void keyDownCb(unsigned char k,int,int){
         flyingMode=!flyingMode;
         if(!flyingMode && camY < EYE_H) camY = EYE_H;
     }
-    else if(kk=='r'){ camX=0; camY=EYE_H; camZ=27.2f; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; doorTargetDeg=0.0f; }
+    else if(kk=='r'){ camX=0; camY=EYE_H; camZ=15.0f; yawDeg=0; pitchDeg=0; flyingMode=false; doorOpen=false; doorTargetDeg=0.0f; }
     else if(kk=='m'){ mouseCaptured=!mouseCaptured; if(mouseCaptured) captureMouseCenter(); else glutSetCursor(GLUT_CURSOR_LEFT_ARROW); }
     else if(kk=='e'){ doorOpen = !doorOpen; doorTargetDeg = doorOpen ? DOOR_OPEN_MAX : 0.0f; }
+    else if(kk=='l'){ 
+        lightingEnabled = !lightingEnabled; 
+        setupLights(); // Reconfigura as luzes imediatamente
+        printf("Iluminacao: %s\n", lightingEnabled ? "LIGADA" : "DESLIGADA");
+    }
 }
 void keyUpCb(unsigned char k,int,int){
     unsigned char kk = (k>='A' && k<='Z') ? (k-'A'+'a') : k; 

@@ -6,7 +6,7 @@
 #include <vector>
 
 static const char* TITLE = "Igreja - Tabuleiro dos Martins ";
-int   WIN_W = 1280, WIN_H = 720;
+int WIN_W = 1280, WIN_H = 720;
 
 const float CH_WIDTH  = 12.0f;  
 const float CH_DEPTH  = 30.0f;   
@@ -18,7 +18,7 @@ const float EYE_H     =  1.7f;
 
 const float RADIUS    = 0.3f;
 
-float camX = 0.0f, camY = EYE_H, camZ = 15.0f;  // Ajustado para nova entrada
+float camX = 0.0f, camY = EYE_H, camZ = 15.0f; 
 float yawDeg = 0.0f, pitchDeg = 0.0f;
 bool keyDown[256]{}, spDown[256]{};
 bool flashlightOn = false, mouseCaptured = true, flyingMode = false, doorOpen = false;
@@ -30,8 +30,6 @@ static const float DOOR_OPEN_MAX = 95.0f; // abre para dentro da igreja
 float baseSpeed = 4.0f; int lastMs = 0;
 bool shiftHeld = false;
 
-// Porta: animação implementada
-
 static float speedMul = 1.0f; // suavização de corrida
 static inline float deg2rad(float d){ return d*3.1415926535f/180.0f; }
 static inline void  clampPitch(){ pitchDeg = std::max(-89.0f, std::min(89.0f, pitchDeg)); }
@@ -39,6 +37,7 @@ static inline void  clampPitch(){ pitchDeg = std::max(-89.0f, std::min(89.0f, pi
 //================== TEXTURAS (PROCEDURAIS) ==================
 GLuint TEX_FLOOR = 0, TEX_GRASS = 0, TEX_MARBLE = 0, TEX_WOOD = 0, TEX_TILE = 0, TEX_PLASTER = 0, TEX_STONE = 0, TEX_REFLECTIVE_TILES = 0, TEX_CROSS = 0, TEX_CEILING = 0, TEX_ALTAR_WALL = 0;
 
+// Cria textura RGBA com mipmaps
 static void createTextureRGBA(GLuint &texId, int w, int h, const std::vector<unsigned char>& data){
 	glGenTextures(1, &texId);
 	glBindTexture(GL_TEXTURE_2D, texId);
@@ -49,6 +48,7 @@ static void createTextureRGBA(GLuint &texId, int w, int h, const std::vector<uns
 	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
 }
 
+// Textura quadriculada simples
 static std::vector<unsigned char> genChecker(int w,int h,int step,
 	unsigned char r1,unsigned char g1,unsigned char b1,
 	unsigned char r2,unsigned char g2,unsigned char b2){
@@ -63,6 +63,7 @@ static std::vector<unsigned char> genChecker(int w,int h,int step,
 	return img;
 }
 
+// Textura de mármore com veios complexos
 static std::vector<unsigned char> genNoiseMarble(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -93,6 +94,7 @@ static std::vector<unsigned char> genNoiseMarble(int w,int h){
 	return img;
 }
 
+// Textura de madeira com veios
 static std::vector<unsigned char> genWood(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -133,6 +135,7 @@ static std::vector<unsigned char> genWood(int w,int h){
 	return img;
 }
 
+// Textura de grama com variações naturais
 static std::vector<unsigned char> genGrass(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -179,6 +182,7 @@ static std::vector<unsigned char> genGrass(int w,int h){
 	return img;
 }
 
+// Textura de reboco com irregularidades
 static std::vector<unsigned char> genPlaster(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -197,7 +201,7 @@ static std::vector<unsigned char> genPlaster(int w,int h){
 		base += spots;
 		
 		// Cores do reboco (bege claro com variações)
-		float r = base * 0.98f;  // ligeiramente mais amarelado
+		float r = base * 0.98f; 
 		float g = base * 0.95f;
 		float b = base * 0.92f;
 		
@@ -215,6 +219,7 @@ static std::vector<unsigned char> genPlaster(int w,int h){
 	return img;
 }
 
+// Textura de pedra com fissuras e irregularidades
 static std::vector<unsigned char> genStone(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -260,6 +265,7 @@ static std::vector<unsigned char> genStone(int w,int h){
 	return img;
 }
 
+// Textura de azulejos reflexivos no chão
 static std::vector<unsigned char> genReflectiveTiles(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -319,6 +325,7 @@ static std::vector<unsigned char> genReflectiveTiles(int w,int h){
 	return img;
 }
 
+// Textura tipo madeira / detalhe da cruz
 static std::vector<unsigned char> genCrossTexture(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -362,6 +369,7 @@ static std::vector<unsigned char> genCrossTexture(int w,int h){
 	return img;
 }
 
+//Textura de teto com painéis horizontais sutis
 static std::vector<unsigned char> genCeilingTexture(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -423,6 +431,7 @@ static std::vector<unsigned char> genCeilingTexture(int w,int h){
 	return img;
 }
 
+// Textura de parede de altar em mármore claro
 static std::vector<unsigned char> genAltarWallTexture(int w,int h){
 	std::vector<unsigned char> img(w*h*4);
 	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
@@ -481,8 +490,6 @@ void initTextures(){
 	createTextureRGBA(TEX_ALTAR_WALL, W,H, genAltarWallTexture(W,H));
 }
 
-
-
 // Quad com repetição de UV
 void drawTexturedQuad(float x0,float y0,float z0, float x1,float y1,float z1,
 	float x2,float y2,float z2, float x3,float y3,float z3,
@@ -501,6 +508,7 @@ void drawTexturedQuad(float x0,float y0,float z0, float x1,float y1,float z1,
 	glEnd();
 }
 
+// Calcula os vetores "forward" e "right" a partir dos ângulos yaw/pitch
 void getLookVectors(float& fx,float& fy,float& fz,float& rx,float& rz){
     float yaw = deg2rad(yawDeg), pitch = deg2rad(pitchDeg);
     float cp=std::cos(pitch), sp=std::sin(pitch);
@@ -589,7 +597,6 @@ void drawAFrameFacade(){
     drawPortalAFrame(zFront, true,  false); // frente: com cruz/placa
     drawPortalAFrame(zBack,  false, true ); // trás: sem cruz/placa
 
-    // Iluminação da fachada será controlada pelas luzes externas em setupLights()
 }
 
 //================== ENTRADA ==================
@@ -612,6 +619,7 @@ void drawPhotoStyleEntrance(){
     drawBox(0.0f, FLOOR_Y+0.01f, 9.6f, 3.8f, 0.02f, 1.2f, 0.75f,0.10f,0.10f);
     drawBox(0.0f, FLOOR_Y+0.02f, 9.9f, 1.9f, 0.02f, 0.7f, 0.55f,0.40f,0.22f);
 }
+
 // Porta dupla de madeira que abre para dentro da igreja
 void drawDoor(){
     const float doorH = 3.0f;
@@ -644,12 +652,6 @@ void drawDoor(){
     glDisable(GL_TEXTURE_2D);
 }
 
-// Efeito visual de luz saindo da porta quando aberta - REMOVIDO para evitar artefatos visuais
-void drawDoorLightEffect(){
-    // Função removida para eliminar o artefato triangular de iluminação
-    // A iluminação da porta agora é controlada apenas pelas luzes dinâmicas em updateFlashlight()
-    return;
-}
 //================== JARDIM EXTERNO ==================
 void drawGarden(){
     // Apenas palmeiras altas ao redor da igreja (sem plantações)
@@ -763,7 +765,6 @@ inline void placeStainedOnSide(float xSide,float y,float z){
 
 //================== OBJETOS ==================
 void drawRealisticAltar(){
-    // Altar movido para frente (de Z=-13.5 para Z=-11.5)
     // Degrau de escada com textura de pedra
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, TEX_STONE);
@@ -798,7 +799,7 @@ void drawRealisticCrucifix(){
     // Parede de mármore decorado com textura realista
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, TEX_ALTAR_WALL);
-    // Desenhar a parede usando drawTexturedQuad para melhor aplicação da textura
+
     // Parede central: x de -2.0 a 2.0, y de 0.0 a 6.0, z = -14.5
     drawTexturedQuad(
         -2.0f, 0.0f, -14.5f,   // canto inferior esquerdo
@@ -831,7 +832,7 @@ void drawRealisticCrucifix(){
 
 void drawRealisticStatues(){
     const float DY = 2.20f;
-    // Estátua da Virgem Maria (com espaço adequado para circulação atrás do altar)
+    // Estátua da Virgem Maria
     float blueR=0.2f, blueG=0.4f, blueB=0.8f;
     float whiteR=0.95f, whiteG=0.95f, whiteB=0.98f;
     float skinR=0.95f, skinG=0.85f, skinB=0.75f;
@@ -852,7 +853,6 @@ void drawRealisticStatues(){
 void drawProcessionalCross(){
     float goldR=0.9f, goldG=0.7f, goldB=0.2f;
     
-    // Cruz processional movida para frente (de Z=-12 para Z=-10)
     // Base dourada
     drawBox(2.5f, FLOOR_Y+0.1f, -10.0f, 0.3f, 0.2f, 0.3f, goldR, goldG, goldB);
     
@@ -898,7 +898,6 @@ void drawAmbaoSymbol(float xCenter, float yCenter, float zFrontFace){
 
 
 void drawAmbao(){
-    // Ambão movido para frente (de Z=-10.5 para Z=-9.0)
     float woodR=0.4f, woodG=0.25f, woodB=0.15f;
     float marbleR=0.95f, marbleG=0.95f, marbleB=0.97f;
     
@@ -930,8 +929,6 @@ void drawAmbao(){
     drawAmbaoSymbol(ambaoX, FLOOR_Y + 0.95f, zFront);
 }
 
-// drawDoor removida (porta não desenhada)
-
 //================== CADEIRAS  ==================
 void drawPlasticChairWhite(){
     const float body = 0.93f;   
@@ -955,7 +952,7 @@ void drawPlasticChairWhite(){
 }
 
 void drawChairsLayout(){
-    // Cadeiras orientadas para o altar (cruz) - Z=6.5 até Z=-6.5
+    // Cadeiras orientadas para o altar (cruz)
     for (float z=6.5f; z>=-6.5f; z-=2.5f){
         for(int c=0;c<4;++c){
             float off=1.0f*c;
@@ -1072,7 +1069,7 @@ void drawFrontPath(){
 //================== LUSTRE ==================
 void drawChandelier(){
     const float chandelierX = 0.0f;
-    const float chandelierY = 4.5f; // altura do lustre acima do altar (reduzida de 5.5 para 4.5)
+    const float chandelierY = 4.5f; // altura do lustre acima do altar
     const float chandelierZ = -13.5f; // posição acima do altar
     
     // Cores do lustre
@@ -1127,7 +1124,7 @@ void drawChurchOpaque(){
 	float ceilR=0.92f, ceilG=0.92f, ceilB=0.94f;  
 
 	// Piso texturizado com azulejos reflexivos
-	const float BACK_WALL_Z = -15.0f; // Nova parede de fundo mais próxima
+	const float BACK_WALL_Z = -15.0f;
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, TEX_REFLECTIVE_TILES);
 	drawTexturedQuad(
@@ -1209,7 +1206,6 @@ void drawChurchOpaque(){
 
     drawProcessionalCross();
     
-    // Ventiladores ao lado das janelas (alternados)
     // Janela Z=6.0: ventilador do lado esquerdo da janela
     drawCeilingFan(-5.8f, 4.5f, 6.0f - 2.0f, true);    // Lado esquerdo da janela frontal esquerda
     drawCeilingFan(5.8f, 4.5f, 6.0f - 2.0f, false);    // Lado esquerdo da janela frontal direita
@@ -1222,8 +1218,6 @@ void drawChurchOpaque(){
     drawPhotoStyleEntrance();
     // Porta desenhada após a moldura da entrada
     drawDoor();
-    // Efeito de luz quando a porta está aberta
-    drawDoorLightEffect();
     
     // Jardim externo com iluminação sutil
     drawGarden();
@@ -1394,7 +1388,7 @@ void setupLights(){
         glLightfv(GL_LIGHT7, GL_SPECULAR, bounceSpc);
     }
 
-} // <-- FECHA setupLights() AQUI
+}
 
 //================== FLASHLIGHT (fora de setupLights) ==================
 void updateFlashlight(){
@@ -1418,10 +1412,7 @@ void updateFlashlight(){
         glDisable(GL_LIGHT1);
     }
 
-    // A luz da porta agora é coberta pelas luzes externas de setupLights().
 }
-
-
 
 void applyCamera(){
     float fx,fy,fz,rx,rz; getLookVectors(fx,fy,fz,rx,rz);
@@ -1431,7 +1422,6 @@ void applyCamera(){
 
 //================== COLISÃO E MOVIMENTO ==================
 bool checkChairCollision(float x, float z){
-    // Atualizado para cadeiras de Z=6.5 até Z=-6.5
     const float startZ = 6.5f;
     const float endZ   = -6.5f;
     const float pitchZ = 2.5f;
@@ -1467,17 +1457,17 @@ bool checkChairCollision(float x, float z){
 
 // Função para verificar colisão com objetos do altar
 bool checkAltarCollision(float x, float z){
-    // Altar (movido para Z=-11.5)
+    // Altar
     if (x >= -2.5f && x <= 2.5f && z >= -12.5f && z <= -10.5f) return true;
     
-    // Ambão (movido para Z=-9.0)
+    // Ambão 
     if (x >= -2.9f && x <= -2.1f && z >= -9.5f && z <= -8.5f) return true;
     
-    // Santos (com espaço adequado atrás do altar)
+    // Santos 
     if (x >= -3.0f && x <= -2.0f && z >= -14.8f && z <= -14.0f) return true; // esquerda
     if (x >= 2.0f && x <= 3.0f && z >= -14.8f && z <= -14.0f) return true;  // direita
 
-    // Cruz processional (movida para Z=-10.0)
+    // Cruz processional 
     if (x >= 2.35f && x <= 2.65f && z >= -10.2f && z <= -9.8f) return true;
     
     return false;
@@ -1575,8 +1565,6 @@ void drawCrosshair(){
     glMatrixMode(GL_MODELVIEW);
 }
 
-// (Botão de porta removido)
-
 //================== RENDER LOOP ==================
 void display(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1589,8 +1577,6 @@ void display(){
     drawChurchWindows();
 
     drawCrosshair();
-
-    // botão de porta removido
 
     glutSwapBuffers();
 }

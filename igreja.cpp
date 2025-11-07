@@ -36,7 +36,7 @@ static inline float deg2rad(float d){ return d*3.1415926535f/180.0f; }
 static inline void  clampPitch(){ pitchDeg = std::max(-89.0f, std::min(89.0f, pitchDeg)); }
 
 //================== TEXTURAS (PROCEDURAIS) ==================
-GLuint TEX_FLOOR = 0, TEX_GRASS = 0, TEX_MARBLE = 0, TEX_WOOD = 0, TEX_TILE = 0, TEX_PLASTER = 0, TEX_STONE = 0, TEX_REFLECTIVE_TILES = 0, TEX_CROSS = 0;
+GLuint TEX_FLOOR = 0, TEX_GRASS = 0, TEX_MARBLE = 0, TEX_WOOD = 0, TEX_TILE = 0, TEX_PLASTER = 0, TEX_STONE = 0, TEX_REFLECTIVE_TILES = 0, TEX_CROSS = 0, TEX_CEILING = 0, TEX_ALTAR_WALL = 0;
 
 static void createTextureRGBA(GLuint &texId, int w, int h, const std::vector<unsigned char>& data){
 	glGenTextures(1, &texId);
@@ -361,6 +361,110 @@ static std::vector<unsigned char> genCrossTexture(int w,int h){
 	return img;
 }
 
+static std::vector<unsigned char> genCeilingTexture(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u=x/(float)w, v=y/(float)h;
+		
+		// Base cinza claro/off-white para teto moderno
+		float baseR = 0.88f, baseG = 0.87f, baseB = 0.86f;
+		
+		// Padrão de painéis horizontais longos e estreitos (como na imagem)
+		float panelHeight = 0.08f; // altura de cada painel (horizontal)
+		float panelV = std::fmod(v, panelHeight) / panelHeight;
+		
+		// Ranhuras sutis entre os painéis (linhas horizontais)
+		float grooveWidth = 0.02f;
+		bool isGroove = (panelV < grooveWidth || panelV > (1.0f - grooveWidth));
+		
+		// Ranhuras finas ao longo do comprimento dos painéis
+		float fineGroove = std::sin(v * 3.14159265f * (1.0f / panelHeight)) * 0.5f + 0.5f;
+		bool isFineGroove = (fineGroove < 0.15f || fineGroove > 0.85f);
+		
+		// Variações sutis de cor
+		float variation = std::sin(u*20.0f + v*15.0f) * 0.03f;
+		
+		float r, g, b;
+		if (isGroove) {
+			// Ranhuras entre painéis (ligeiramente mais escuras)
+			r = baseR * 0.92f;
+			g = baseG * 0.92f;
+			b = baseB * 0.92f;
+		} else if (isFineGroove) {
+			// Ranhuras finas (muito sutis)
+			r = baseR * 0.97f;
+			g = baseG * 0.97f;
+			b = baseB * 0.97f;
+		} else {
+			// Área principal do painel
+			r = baseR + variation;
+			g = baseG + variation * 0.98f;
+			b = baseB + variation * 0.96f;
+		}
+		
+		// Adicionar brilho sutil (superfície lisa e semi-refletiva)
+		float shine = std::sin(u*25.0f + v*18.0f) * 0.02f;
+		r += shine;
+		g += shine * 0.99f;
+		b += shine * 0.98f;
+		
+		// Garantir que os valores estejam no range correto
+		r = std::max(0.0f, std::min(1.0f, r));
+		g = std::max(0.0f, std::min(1.0f, g));
+		b = std::max(0.0f, std::min(1.0f, b));
+		
+		unsigned char red=(unsigned char)(r*255);
+		unsigned char green=(unsigned char)(g*255);
+		unsigned char blue=(unsigned char)(b*255);
+		
+		int i=(y*w+x)*4; img[i]=red; img[i+1]=green; img[i+2]=blue; img[i+3]=255;
+	}}
+	return img;
+}
+
+static std::vector<unsigned char> genAltarWallTexture(int w,int h){
+	std::vector<unsigned char> img(w*h*4);
+	for(int y=0;y<h;++y){ for(int x=0;x<w;++x){
+		float u=x/(float)w, v=y/(float)h;
+		
+		// Base de mármore branco suave para parede de altar
+		float baseR = 0.94f, baseG = 0.92f, baseB = 0.90f;
+		
+		// Veios sutis do mármore (simples e elegante)
+		float veins1 = std::sin((u*6.0f + v*2.0f) * 3.14159265f) * 0.06f;
+		float veins2 = std::sin((u*4.0f - v*1.5f) * 3.14159265f) * 0.04f;
+		float combined = (veins1 + veins2) * 0.5f;
+		
+		// Variações sutis da base
+		float baseVar = 0.90f + 0.08f * std::sin(u*25.0f + v*20.0f) * 0.2f;
+		float final = baseVar + combined * 0.1f;
+		final = std::max(0.0f, std::min(1.0f, final));
+		
+		// Aplicar veios suavemente
+		float r = final;
+		float g = final * 0.98f;
+		float b = final * 0.96f;
+		
+		// Adicionar brilho muito sutil do mármore polido
+		float polish = std::sin(u*30.0f + v*25.0f) * 0.03f;
+		r += polish;
+		g += polish * 0.98f;
+		b += polish * 0.96f;
+		
+		// Garantir que os valores estejam no range correto
+		r = std::max(0.0f, std::min(1.0f, r));
+		g = std::max(0.0f, std::min(1.0f, g));
+		b = std::max(0.0f, std::min(1.0f, b));
+		
+		unsigned char red=(unsigned char)(r*255);
+		unsigned char green=(unsigned char)(g*255);
+		unsigned char blue=(unsigned char)(b*255);
+		
+		int i=(y*w+x)*4; img[i]=red; img[i+1]=green; img[i+2]=blue; img[i+3]=255;
+	}}
+	return img;
+}
+
 void initTextures(){
 	const int W=256,H=256;
 	createTextureRGBA(TEX_TILE,   W,H, genChecker(W,H,32, 210,210,215, 160,160,165));
@@ -372,6 +476,8 @@ void initTextures(){
 	createTextureRGBA(TEX_STONE,  W,H, genStone(W,H));
 	createTextureRGBA(TEX_REFLECTIVE_TILES, W,H, genReflectiveTiles(W,H));
 	createTextureRGBA(TEX_CROSS,  W,H, genCrossTexture(W,H));
+	createTextureRGBA(TEX_CEILING, W,H, genCeilingTexture(W,H));
+	createTextureRGBA(TEX_ALTAR_WALL, W,H, genAltarWallTexture(W,H));
 }
 
 // Quad com repetição de UV
@@ -665,11 +771,17 @@ void drawRealisticAltar(){
 }
 
 void drawRealisticCrucifix(){
-    // Parede de mármore cinza claro com textura
+    // Parede de mármore decorado com textura realista
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, TEX_MARBLE);
-    float marbleR=0.88f, marbleG=0.88f, marbleB=0.90f;
-    drawBox(0.0f, 3.0f, -24.9f, 4.0f, 6.0f, 0.1f, marbleR, marbleG, marbleB);
+    glBindTexture(GL_TEXTURE_2D, TEX_ALTAR_WALL);
+    // Desenhar a parede usando drawTexturedQuad para melhor aplicação da textura
+    // Parede central: x de -2.0 a 2.0, y de 0.0 a 6.0, z = -24.9
+    drawTexturedQuad(
+        -2.0f, 0.0f, -24.9f,   // canto inferior esquerdo
+         2.0f, 0.0f, -24.9f,   // canto inferior direito
+         2.0f, 6.0f, -24.9f,   // canto superior direito
+        -2.0f, 6.0f, -24.9f,   // canto superior esquerdo
+        2.0f, 3.0f);            // repetição da textura (largura x altura)
     glDisable(GL_TEXTURE_2D);
     
     // Cruz com nova textura personalizada
@@ -889,6 +1001,55 @@ void drawFrontPath(){
     }
 }
 
+//================== LUZES LED EMBUTIDAS NO TETO ==================
+void drawRecessedLEDLight(float x, float y, float z){
+    // Luz LED quadrada embutida no teto (como na imagem)
+    const float lightSize = 0.15f;  // tamanho da luz quadrada
+    const float lightDepth = 0.02f; // profundidade embutida
+    
+    // Moldura da luz (cinza escuro)
+    float frameR = 0.25f, frameG = 0.25f, frameB = 0.27f;
+    drawBox(x, y - lightDepth*0.5f, z, lightSize + 0.02f, lightDepth, lightSize + 0.02f, frameR, frameG, frameB);
+    
+    // Luz LED (branco brilhante com emissão)
+    glDisable(GL_LIGHTING);
+    GLfloat emissive[4] = {1.0f, 1.0f, 0.95f, 1.0f};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissive);
+    glColor3f(1.0f, 1.0f, 0.98f);
+    drawBox(x, y - lightDepth*0.3f, z, lightSize, 0.01f, lightSize, 1.0f, 1.0f, 0.98f);
+    
+    GLfloat emissiveOff[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, emissiveOff);
+    glEnable(GL_LIGHTING);
+}
+
+void drawCeilingLights(){
+    // Distribuir luzes LED embutidas ao longo do teto da igreja
+    const float ceilingY = CH_HEIGHT;
+    const float startZ = 15.0f - CH_DEPTH;
+    const float endZ = 15.0f;
+    const float lightSpacing = 3.5f; // espaçamento entre luzes
+    
+    // Linha central de luzes
+    for (float z = startZ + 2.0f; z < endZ - 2.0f; z += lightSpacing) {
+        drawRecessedLEDLight(0.0f, ceilingY, z);
+    }
+    
+    // Linhas laterais de luzes (esquerda e direita)
+    const float sideX = CH_WIDTH * 0.35f; // posição lateral
+    for (float z = startZ + 1.5f; z < endZ - 1.5f; z += lightSpacing * 0.8f) {
+        drawRecessedLEDLight(-sideX, ceilingY, z);
+        drawRecessedLEDLight(sideX, ceilingY, z);
+    }
+}
+
+void setupCeilingLEDLights(){
+    // Configurar luzes dinâmicas para as LEDs embutidas no teto
+    // Aumentar a iluminação geral do teto para simular as LEDs embutidas
+    // A iluminação visual já é feita por drawRecessedLEDLight()
+    // Aqui apenas ajustamos a luz ambiente geral do teto
+}
+
 //================== LUSTRE ==================
 void drawChandelier(){
     const float chandelierX = 0.0f;
@@ -956,9 +1117,19 @@ void drawChurchOpaque(){
 		-CH_WIDTH*0.5f, FLOOR_Y-0.05f, 15.0f,
 		8.0f, CH_DEPTH*0.3f);
 
-	// Teto
+	// Teto texturizado com painéis horizontais modernos
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, TEX_CEILING);
+	drawTexturedQuad(
+		-CH_WIDTH*0.5f, CH_HEIGHT, 15.0f - CH_DEPTH,
+		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f - CH_DEPTH,
+		 CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
+		-CH_WIDTH*0.5f, CH_HEIGHT, 15.0f,
+		 CH_WIDTH*0.4f, CH_DEPTH*0.4f);
 	glDisable(GL_TEXTURE_2D);
-	drawBox(0.0f, CH_HEIGHT, -5.0f,   CH_WIDTH, 0.1f, CH_DEPTH,  ceilR,ceilG,ceilB);
+	
+	// Luzes LED embutidas no teto
+	drawCeilingLights();
 
     // Paredes laterais e fundo (reboco)
 	glEnable(GL_TEXTURE_2D); glBindTexture(GL_TEXTURE_2D, TEX_PLASTER);
@@ -1102,16 +1273,17 @@ void setupLights(){
 
     //================== LUZES INTERNAS ==================
     
-    // Luz principal do teto
+    // Luz principal do teto (simulando LEDs embutidas)
     glEnable(GL_LIGHT0);
-    GLfloat pos0[4]  = { 0.0f, 7.0f, 0.0f, 1.0f };
-    GLfloat dif0[4]  = { 0.65f,0.65f,0.65f,1.0f };
-    GLfloat amb0[4]  = { 0.05f,0.05f,0.05f,1.0f };
-    GLfloat spec0[4] = { 0.20f,0.20f,0.20f,1.0f };
+    GLfloat pos0[4]  = { 0.0f, CH_HEIGHT - 0.1f, 0.0f, 1.0f };
+    GLfloat dif0[4]  = { 0.85f,0.85f,0.88f,1.0f };  // mais brilhante (LEDs)
+    GLfloat amb0[4]  = { 0.08f,0.08f,0.10f,1.0f };
+    GLfloat spec0[4] = { 0.25f,0.25f,0.25f,1.0f };
     glLightfv(GL_LIGHT0, GL_POSITION, pos0);
     glLightfv(GL_LIGHT0, GL_DIFFUSE,  dif0);
     glLightfv(GL_LIGHT0, GL_AMBIENT,  amb0);
     glLightfv(GL_LIGHT0, GL_SPECULAR, spec0);
+    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.03f);
 
     // Luz do altar
     glEnable(GL_LIGHT2);
